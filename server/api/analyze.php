@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $configFile = __DIR__ . '/config.php';
 if (!file_exists($configFile)) {
     http_response_code(503);
-    echo json_encode(['error' => 'API not configured. Copy config.example.php to config.php']);
+    echo json_encode(['error' => 'API not configured on server']);
     exit;
 }
 
@@ -27,7 +27,7 @@ $apiKey = $config['gemini_api_key'] ?? '';
 
 if (empty($apiKey)) {
     http_response_code(503);
-    echo json_encode(['error' => 'Gemini API key not set']);
+    echo json_encode(['error' => 'Gemini API key not set on server']);
     exit;
 }
 
@@ -46,29 +46,22 @@ $prompt = "Ты эксперт по фотографии произведени�
 Ответь СТРОГО в JSON без markdown:
 {
   \"score\": число 1-10,
-  \"ready\": true/false (готово к публикации),
-  \"issues\": [\"проблема1\", \"проблема2\"],
-  \"tips\": [\"совет1\", \"совет2\", \"совет3\"],
+  \"ready\": true/false,
+  \"issues\": [\"проблема1\"],
+  \"tips\": [\"совет1\"],
   \"suggestedTitle\": \"название\",
-  \"suggestedDescription\": \"описание 1-2 предложения\",
+  \"suggestedDescription\": \"описание\",
   \"detectedCategory\": \"painting|sculpture|photography|graphics|digital|ceramics|textile\"
-}
-Оцени: блики, перекос, резкость, цвет, фон, обрезку.";
+}";
 
 $payload = [
     'contents' => [[
         'parts' => [
             ['text' => $prompt],
-            ['inline_data' => [
-                'mime_type' => 'image/jpeg',
-                'data' => $imageBase64,
-            ]],
+            ['inline_data' => ['mime_type' => 'image/jpeg', 'data' => $imageBase64]],
         ],
     ]],
-    'generationConfig' => [
-        'temperature' => 0.3,
-        'maxOutputTokens' => 1024,
-    ],
+    'generationConfig' => ['temperature' => 0.3, 'maxOutputTokens' => 1024],
 ];
 
 $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' . urlencode($apiKey);
@@ -81,29 +74,25 @@ curl_setopt_array($ch, [
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_TIMEOUT => 30,
 ]);
-
 $response = curl_exec($ch);
 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 
 if ($httpCode !== 200 || !$response) {
     http_response_code(502);
-    echo json_encode(['error' => 'Gemini API request failed', 'code' => $httpCode]);
+    echo json_encode(['error' => 'Gemini API request failed']);
     exit;
 }
 
 $data = json_decode($response, true);
 $text = $data['candidates'][0]['content']['parts'][0]['text'] ?? '';
-
-// Extract JSON from response
 $text = preg_replace('/```json\s*/', '', $text);
 $text = preg_replace('/```\s*/', '', $text);
-$text = trim($text);
+$result = json_decode(trim($text), true);
 
-$result = json_decode($text, true);
 if (!$result) {
     http_response_code(502);
-    echo json_encode(['error' => 'Failed to parse AI response', 'raw' => $text]);
+    echo json_encode(['error' => 'Failed to parse AI response']);
     exit;
 }
 
