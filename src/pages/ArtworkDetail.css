@@ -1,0 +1,87 @@
+.artwork-detail { padding: 2rem 0 4rem; }
+
+.artwork-detail__back { margin-bottom: 1.5rem; }
+
+.artwork-detail__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+  align-items: start;
+}
+
+.artwork-detail__image { position: relative; overflow: hidden; }
+
+.artwork-detail__image img { width: 100%; aspect-ratio: 4/5; object-fit: cover; }
+
+.artwork-detail__ai {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  background: rgba(15, 14, 13, 0.85);
+  padding: 0.375rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  color: var(--accent);
+}
+
+.artwork-detail__tags { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; }
+
+.artwork-detail__cat {
+  padding: 0.25rem 0.625rem;
+  background: var(--bg-card);
+  border-radius: 6px;
+  font-size: 0.8125rem;
+}
+
+.artwork-detail__info h1 {
+  font-family: var(--font-serif);
+  font-size: 2.25rem;
+  line-height: 1.2;
+  margin-bottom: 0.75rem;
+}
+
+.artwork-detail__artist {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 0.9375rem;
+  margin-bottom: 1rem;
+}
+
+.artwork-detail__artist img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+
+.artwork-detail__price { font-size: 1.75rem; font-weight: 600; color: var(--accent); margin-bottom: 1rem; }
+
+.artwork-detail__desc { color: var(--text-muted); line-height: 1.7; margin-bottom: 1.5rem; }
+
+.artwork-detail__meta {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+}
+
+.artwork-detail__meta dt { color: var(--text-muted); margin-bottom: 0.125rem; }
+
+.artwork-detail__buy { padding: 1rem 2.5rem; margin-bottom: 0.75rem; display: inline-flex; }
+
+.artwork-detail__gallery { display: inline-flex; }
+
+.artwork-detail__sold { color: var(--danger); font-weight: 500; }
+
+.artwork-detail__related { margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--border); }
+
+.artwork-detail__related h2 { font-family: var(--font-serif); font-size: 1.5rem; margin-bottom: 1.25rem; }
+
+.artwork-detail__related-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+}
+
+@media (max-width: 768px) {
+  .artwork-detail__grid { grid-template-columns: 1fr; }
+  .artwork-detail__related-grid { grid-template-columns: 1fr; }
+}

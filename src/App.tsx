@@ -2,10 +2,15 @@ import { Routes, Route } from 'react-router-dom'
 import Layout from './components/Layout'
 import Home from './pages/Home'
 import Board from './pages/Board'
-import Gallery from './pages/Gallery'
+import Galleries from './pages/Galleries'
+import CategoryGallery from './pages/CategoryGallery'
+import Artists from './pages/Artists'
+import ArtistProfile from './pages/ArtistProfile'
+import ArtworkDetail from './pages/ArtworkDetail'
+import Pricing from './pages/Pricing'
 import Sell from './pages/Sell'
-import PaintingDetail from './pages/PaintingDetail'
-import Checkout from './pages/Checkout'
+import PlacementCheckout from './pages/PlacementCheckout'
+import PurchaseCheckout from './pages/PurchaseCheckout'
 
 export default function App() {
   return (
@@ -13,10 +18,15 @@ export default function App() {
       <Route element={<Layout />}>
         <Route index element={<Home />} />
         <Route path="board" element={<Board />} />
-        <Route path="gallery" element={<Gallery />} />
+        <Route path="galleries" element={<Galleries />} />
+        <Route path="gallery/:category" element={<CategoryGallery />} />
+        <Route path="artists" element={<Artists />} />
+        <Route path="artist/:id" element={<ArtistProfile />} />
+        <Route path="artwork/:id" element={<ArtworkDetail />} />
+        <Route path="pricing" element={<Pricing />} />
         <Route path="sell" element={<Sell />} />
-        <Route path="painting/:id" element={<PaintingDetail />} />
-        <Route path="checkout/:id" element={<Checkout />} />
+        <Route path="place-checkout" element={<PlacementCheckout />} />
+        <Route path="checkout/:id" element={<PurchaseCheckout />} />
       </Route>
     </Routes>
   )

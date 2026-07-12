@@ -1,0 +1,80 @@
+.cat-gallery { position: fixed; inset: 0; background: var(--bg); }
+
+.cat-gallery canvas { display: block; }
+
+.cat-gallery__hud { position: fixed; inset: 0; pointer-events: none; z-index: 50; }
+
+.cat-gallery__title {
+  position: absolute;
+  top: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(15, 14, 13, 0.8);
+  backdrop-filter: blur(8px);
+  padding: 0.5rem 1.25rem;
+  border-radius: 999px;
+  font-size: 0.9375rem;
+  border: 1px solid var(--border);
+}
+
+.cat-gallery__back {
+  pointer-events: auto;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 1.125rem;
+}
+
+.cat-gallery__back:hover { color: var(--accent); }
+
+.gallery-crosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(201, 169, 98, 0.7);
+}
+
+.cat-gallery__hint {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 14, 13, 0.75);
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.cat-gallery__info {
+  position: absolute;
+  top: 120px;
+  right: 24px;
+  width: 240px;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.cat-gallery__info img { width: 100%; aspect-ratio: 4/5; object-fit: cover; }
+
+.cat-gallery__info > div { padding: 1rem; }
+
+.cat-gallery__info h3 { font-family: var(--font-serif); font-size: 1rem; margin-bottom: 0.25rem; }
+
+.cat-gallery__price { color: var(--accent); font-weight: 600; margin-bottom: 0.75rem; }
+
+.cat-gallery__info .btn { width: 100%; padding: 0.5rem; font-size: 0.8125rem; }
+
+@media (max-width: 768px) {
+  .cat-gallery__hint { bottom: 110px; }
+  .cat-gallery__info { top: auto; bottom: 110px; right: 16px; left: 16px; width: auto; flex-direction: row; }
+  .cat-gallery__info img { width: 72px; flex-shrink: 0; }
+}

@@ -4,8 +4,10 @@ dist/
 
 # Build
 *.local
-dist/
 tsconfig.tsbuildinfo
+
+# API secrets
+public/api/config.php
 
 # Editor
 .vscode/
