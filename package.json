@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:upload": "node scripts/test-photo-upload.mjs",
+    "deploy": "bash scripts/deploy.sh"
   },
   "dependencies": {
     "@react-three/drei": "^9.117.3",
