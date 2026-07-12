@@ -18,7 +18,7 @@ export default function Home() {
               <em>Гуляйте по галерее.</em>
             </h1>
             <p className="hero__desc">
-              ArtVault — доска объявлений, где художники выставляют свои работы.
+              Geo Gallery — доска объявлений, где художники выставляют свои работы.
               Мы принимаем оплату, выкупаем картину у автора и доставляем вам домой.
             </p>
             <div className="hero__actions">
@@ -50,7 +50,7 @@ export default function Home() {
             </div>
             <div className="how__step">
               <span className="how__num">03</span>
-              <h3>ArtVault выкупает</h3>
+              <h3>Geo Gallery выкупает</h3>
               <p>Вы оплачиваете на сайте — мы выкупаем картину у художника.</p>
             </div>
             <div className="how__step">

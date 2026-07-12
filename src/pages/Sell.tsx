@@ -39,7 +39,7 @@ export default function Sell() {
         <header className="sell__header">
           <h1 className="sell__title">Разместить картину</h1>
           <p className="sell__subtitle">
-            После продажи ArtVault выкупит вашу работу и доставит покупателю
+            После продажи Geo Gallery выкупит вашу работу и доставит покупателю
           </p>
         </header>
 

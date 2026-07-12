@@ -54,7 +54,7 @@ export default function PaintingDetail() {
               <h3>Как проходит покупка</h3>
               <ol>
                 <li>Вы оплачиваете на сайте</li>
-                <li>ArtVault выкупает картину у художника</li>
+                <li>Geo Gallery выкупает картину у художника</li>
                 <li>Мы упаковываем и отправляем вам</li>
               </ol>
             </div>

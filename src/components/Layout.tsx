@@ -18,7 +18,7 @@ export default function Layout() {
         <div className="container header__inner">
           <Link to="/" className="logo">
             <span className="logo__mark">◆</span>
-            <span className="logo__text">ArtVault</span>
+            <span className="logo__text">Geo Gallery</span>
           </Link>
           <nav className="nav">
             {NAV.map((item) => (
@@ -39,7 +39,7 @@ export default function Layout() {
       {!isGallery && (
         <footer className="footer">
           <div className="container footer__inner">
-            <p>© 2026 ArtVault — маркетплейс картин с онлайн-галереей</p>
+            <p>© 2026 Geo Gallery — маркетплейс картин с онлайн-галереей</p>
             <p className="footer__note">Мы выкупаем картины у художников и доставляем покупателям</p>
           </div>
         </footer>
