@@ -78,7 +78,7 @@ function canvasToWebp(canvas: HTMLCanvasElement): { image: string; mime: string 
   return { image: jpeg, mime: 'image/jpeg' }
 }
 
-async function clientOptimize(file: File, category?: string): Promise<ProcessedPhoto> {
+async function processImage(file: File, category?: string): Promise<ProcessedPhoto> {
   const img = await createImageBitmap(file)
 
   const estFrame = frameWidth(MAX_WIDTH, MAX_HEIGHT)
@@ -112,7 +112,7 @@ async function clientOptimize(file: File, category?: string): Promise<ProcessedP
     score: 7,
     ready: true,
     issues: [],
-    tips: ['Локальная оптимизация (сервер недоступен)'],
+    tips: ['WebP, деревянная рамка, пропорции сохранены'],
     seoTitle: 'Авторская работа',
     seoDescription: 'Уникальное произведение искусства на Geo Gallery',
     seoAlt: 'Произведение искусства — Geo Gallery',
@@ -127,7 +127,6 @@ export async function processPhoto(file: File, category?: string): Promise<Proce
 
 export interface ProcessPhotoReport {
   result: ProcessedPhoto
-  source: 'server' | 'client'
   durationMs: number
   original: {
     name: string
@@ -138,11 +137,7 @@ export interface ProcessPhotoReport {
   }
 }
 
-export async function processPhotoDetailed(
-  file: File,
-  category?: string,
-  options?: { forceClient?: boolean },
-): Promise<ProcessPhotoReport> {
+export async function processPhotoDetailed(file: File, category?: string): Promise<ProcessPhotoReport> {
   const img = await createImageBitmap(file)
   const original = {
     name: file.name,
@@ -153,57 +148,13 @@ export async function processPhotoDetailed(
   }
 
   const start = performance.now()
+  const result = await processImage(file, category)
 
-  if (!options?.forceClient) {
-    const base64 = await fileToBase64(file)
-    try {
-      const res = await fetch('/api/process-photo.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: base64, category }),
-      })
-      if (!res.ok) throw new Error('API error')
-      const data = await res.json()
-      if (data.error) throw new Error(data.error)
-      return {
-        result: data as ProcessedPhoto,
-        source: 'server',
-        durationMs: Math.round(performance.now() - start),
-        original,
-      }
-    } catch {
-      // fallback to client
-    }
-  }
-
-  const result = await clientOptimize(file, category)
   return {
     result,
-    source: 'client',
     durationMs: Math.round(performance.now() - start),
     original,
   }
-}
-
-export function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      const result = reader.result as string
-      resolve(result.split(',')[1] ?? result)
-    }
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
-}
-
-export function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result as string)
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
 }
 
 export { PHOTO_PROCESS_PRICE }

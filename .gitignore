@@ -6,12 +6,7 @@ dist/
 *.local
 tsconfig.tsbuildinfo
 
-# API — never commit keys or live config
-public/api/
-/api/
-server/api/config.php
-server/gemini-config.php
-**/gemini-config.php
+# Env
 .env
 .env.*
 !.env.example

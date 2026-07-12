@@ -7,28 +7,14 @@ npm install
 npm run dev
 ```
 
-## Деплой сайта
+## Деплой
 
 ```bash
-npm run build
-# загрузить dist/ на хостинг
+npm run deploy
 ```
 
-## Тест загрузчика
+## Обработка фото
 
-```bash
-npm run dev
-```
+Всё в браузере (canvas): сжатие в WebP, деревянная рамка, без обрезки. Серверный API не используется.
 
-Откройте **http://localhost:5173/test-upload** — загрузите фото или нажмите «Сгенерировать тест», затем **«Скопировать отчёт JSON»** и пришлите результат.
-
-На проде: **http://geogallery.online/test-upload** (после деплоя).
-
-
-PHP-скрипт `server/api/process-photo.php` сжимает изображения, конвертирует в WebP, сохраняет пропорции (без обрезки) и добавляет деревянную рамку с паспарту.
-
-```bash
-scripts/deploy-api.sh
-```
-
-Файлы загружаются в `public_html/api/` на хостинге.
+Тест: **http://localhost:5173/test-upload** или **http://geogallery.online/test-upload**

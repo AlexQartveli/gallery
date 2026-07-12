@@ -1,9 +1,8 @@
 #!/bin/bash
-# Полный деплой Geo Gallery на Beget
+# Деплой Geo Gallery на Beget (только фронтенд)
 set -e
 REMOTE="${DEPLOY_SSH:-infoprfo_gal@infoprfo.beget.tech}"
 WEB_ROOT="${DEPLOY_WEB_ROOT:-/home/i/infoprfo/geogallery.online/public_html}"
-API_DIR="${DEPLOY_API_DIR:-$WEB_ROOT/api}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
@@ -19,7 +18,6 @@ fi
 
 rsync -avz --no-times -e "$RSYNC_SSH" \
   --delete \
-  --exclude 'api/' \
   "$ROOT/dist/" \
   "$REMOTE:$WEB_ROOT/" || RSYNC_EXIT=$?
 
@@ -29,14 +27,11 @@ elif [ "${RSYNC_EXIT:-0}" != "0" ]; then
   exit "${RSYNC_EXIT}"
 fi
 
-echo "==> Deploy API"
-rsync -avz --no-times -e "$RSYNC_SSH" \
-  --exclude 'config.php' \
-  "$ROOT/server/api/" \
-  "$REMOTE:$API_DIR/"
+echo "==> Remove old API folder from server"
+if [ -n "$SSHPASS" ]; then
+  sshpass -e ssh -o StrictHostKeyChecking=no "$REMOTE" "rm -rf $WEB_ROOT/api" 2>/dev/null || true
+else
+  ssh -o StrictHostKeyChecking=no "$REMOTE" "rm -rf $WEB_ROOT/api" 2>/dev/null || true
+fi
 
-echo "==> Test API"
-sleep 2
-node "$ROOT/scripts/test-photo-upload.mjs" "http://geogallery.online/api/process-photo.php"
-
-echo "==> Done: http://geogallery.online/test-upload"
+echo "==> Done: http://geogallery.online"

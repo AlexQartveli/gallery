@@ -21,7 +21,6 @@ function buildReportJson(report: ProcessPhotoReport): string {
       tips: report.result.tips,
     },
     processing: {
-      source: report.source,
       durationMs: report.durationMs,
     },
     checks: {
@@ -71,7 +70,6 @@ export default function PhotoUploadTest() {
   const [rawPreview, setRawPreview] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [forceClient, setForceClient] = useState(false)
   const [copied, setCopied] = useState(false)
 
   const runTest = async (file: File) => {
@@ -80,7 +78,7 @@ export default function PhotoUploadTest() {
     setCopied(false)
     setRawPreview(URL.createObjectURL(file))
     try {
-      const data = await processPhotoDetailed(file, 'painting', { forceClient })
+      const data = await processPhotoDetailed(file, 'painting')
       setReport(data)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Ошибка обработки')
@@ -130,10 +128,6 @@ export default function PhotoUploadTest() {
           <button type="button" className="btn btn-secondary" onClick={handleSample} disabled={loading}>
             Сгенерировать тест 1600×900
           </button>
-          <label className="upload-test__checkbox">
-            <input type="checkbox" checked={forceClient} onChange={(e) => setForceClient(e.target.checked)} />
-            Только клиент (без сервера)
-          </label>
         </div>
 
         {loading && <p className="upload-test__status">Обработка...</p>}
@@ -158,7 +152,6 @@ export default function PhotoUploadTest() {
                   <dt>Формат</dt><dd>{report.result.mime}</dd>
                   <dt>Размер</dt><dd>{report.result.sizeKb} КБ</dd>
                   <dt>Пиксели</dt><dd>{report.result.width}×{report.result.height}</dd>
-                  <dt>Источник</dt><dd>{report.source === 'server' ? 'Сервер (PHP)' : 'Клиент (canvas)'}</dd>
                   <dt>Время</dt><dd>{report.durationMs} мс</dd>
                 </dl>
               </div>
