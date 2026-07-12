@@ -9,6 +9,25 @@ export type CategoryId =
 
 export type ArtworkStatus = 'active' | 'sold' | 'draft' | 'expired'
 
+export interface VipBoosts {
+  crown?: string
+  spotlight?: string
+  catalog?: string
+}
+
+export type VipBoostType = 'crown' | 'spotlight' | 'catalog' | 'pack'
+
+export interface BoostProduct {
+  id: 'ai_photo' | VipBoostType
+  name: string
+  description: string
+  price: number
+  periodDays: number
+  icon: string
+  features: string[]
+  popular?: boolean
+}
+
 export interface Artist {
   id: string
   name: string
@@ -36,6 +55,9 @@ export interface Artwork {
   createdAt: string
   expiresAt: string
   featured: boolean
+  imageOptimized?: boolean
+  seoAlt?: string
+  vipBoosts?: VipBoosts
   aiScore?: number
   aiTips?: string[]
 }
@@ -92,6 +114,33 @@ export interface PhotoAnalysis {
   detectedCategory?: string
 }
 
+export interface ProcessedPhoto {
+  image: string
+  mime: string
+  width: number
+  height: number
+  sizeKb: number
+  score: number
+  ready: boolean
+  issues: string[]
+  tips: string[]
+  seoTitle: string
+  seoDescription: string
+  seoAlt: string
+  suggestedCategory?: string
+}
+
+export interface BoostOrder {
+  id: string
+  artworkId?: string
+  boostId: string
+  artistId: string
+  amount: number
+  status: 'paid' | 'pending'
+  createdAt: string
+  expiresAt: string
+}
+
 export interface NewArtwork {
   title: string
   artistId: string
@@ -102,6 +151,9 @@ export interface NewArtwork {
   height: number
   depth?: number
   imageUrl: string
+  imageOptimized?: boolean
+  seoAlt?: string
+  vipBoosts?: VipBoosts
   aiScore?: number
   aiTips?: string[]
 }

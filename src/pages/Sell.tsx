@@ -2,18 +2,21 @@ import { useState, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useStore } from '../store/useStore'
 import { CATEGORIES } from '../data/categories'
-import { getTariff } from '../data/tariffs'
-import { analyzePhoto, fileToBase64, fileToDataUrl } from '../lib/gemini'
-import type { CategoryId, PhotoAnalysis } from '../types'
+import { getTariff, formatPrice } from '../data/tariffs'
+import { BOOST_PRODUCTS } from '../data/boosts'
+import { processPhoto, AI_PHOTO_PRICE } from '../lib/gemini'
+import type { CategoryId, ProcessedPhoto, VipBoostType } from '../types'
 import './Sell.css'
 
 export default function Sell() {
   const addArtwork = useStore((s) => s.addArtwork)
+  const payBoost = useStore((s) => s.payBoost)
   const currentUser = useStore((s) => s.currentUser)
   const artist = useStore((s) => s.getArtist(currentUser?.artistId ?? ''))
   const canAdd = useStore((s) => s.canAddListing(currentUser?.artistId ?? ''))
   const navigate = useNavigate()
   const fileRef = useRef<HTMLInputElement>(null)
+  const rawFileRef = useRef<File | null>(null)
 
   const [form, setForm] = useState({
     title: '',
@@ -24,50 +27,87 @@ export default function Sell() {
     height: '',
     depth: '',
     imageUrl: '',
+    seoAlt: '',
   })
+  const [rawPreview, setRawPreview] = useState('')
   const [preview, setPreview] = useState('')
-  const [analyzing, setAnalyzing] = useState(false)
-  const [analysis, setAnalysis] = useState<PhotoAnalysis | null>(null)
+  const [processing, setProcessing] = useState(false)
+  const [aiPaid, setAiPaid] = useState(false)
+  const [processed, setProcessed] = useState<ProcessedPhoto | null>(null)
+  const [selectedVip, setSelectedVip] = useState<VipBoostType | 'pack' | null>(null)
+  const [payingAi, setPayingAi] = useState(false)
 
   const tariff = getTariff(currentUser?.tariffId ?? artist?.tariffId ?? '')
-  const hasAi = tariff?.aiAnalysis ?? false
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-
-    if (file.size > 10 * 1024 * 1024) {
-      alert('Максимальный размер файла: 10 МБ')
+    if (file.size > 15 * 1024 * 1024) {
+      alert('Максимум 15 МБ')
       return
     }
+    rawFileRef.current = file
+    const dataUrl = URL.createObjectURL(file)
+    setRawPreview(dataUrl)
+    setPreview('')
+    setProcessed(null)
+    setAiPaid(false)
+  }
 
-    const dataUrl = await fileToDataUrl(file)
-    setPreview(dataUrl)
-    setForm((f) => ({ ...f, imageUrl: dataUrl }))
+  const handleAiProcess = async () => {
+    const file = rawFileRef.current
+    if (!file || !currentUser) return
 
-    if (hasAi) {
-      setAnalyzing(true)
-      try {
-        const base64 = await fileToBase64(file)
-        const result = await analyzePhoto(base64, form.category)
-        setAnalysis(result)
-        if (result.suggestedTitle && !form.title) {
-          setForm((f) => ({
-            ...f,
-            title: result.suggestedTitle ?? f.title,
-            description: result.suggestedDescription ?? f.description,
-            category: (result.detectedCategory as CategoryId) || f.category,
-          }))
-        }
-      } finally {
-        setAnalyzing(false)
-      }
+    setPayingAi(true)
+    await new Promise((r) => setTimeout(r, 1500))
+    payBoost('ai_photo', currentUser.artistId)
+    setAiPaid(true)
+    setPayingAi(false)
+
+    setProcessing(true)
+    try {
+      const result = await processPhoto(file, form.category)
+      setProcessed(result)
+      setPreview(result.image)
+      setForm((f) => ({
+        ...f,
+        imageUrl: result.image,
+        title: result.seoTitle || f.title,
+        description: result.seoDescription || f.description,
+        seoAlt: result.seoAlt,
+        category: (result.suggestedCategory as CategoryId) || f.category,
+      }))
+    } finally {
+      setProcessing(false)
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!currentUser || !canAdd.ok) return
+
+    if (!aiPaid || !processed) {
+      alert(`Сначала оплатите AI-обработку фото (${AI_PHOTO_PRICE} ₾)`)
+      return
+    }
+
+    let vipBoosts = undefined
+    if (selectedVip) {
+      payBoost(selectedVip, currentUser.artistId)
+      const boost = BOOST_PRODUCTS.find((b) => b.id === selectedVip)
+      if (boost && boost.periodDays > 0) {
+        const exp = new Date(Date.now() + boost.periodDays * 86400000).toISOString()
+        if (selectedVip === 'pack') {
+          vipBoosts = { crown: exp, spotlight: exp, catalog: exp }
+        } else if (selectedVip === 'crown') {
+          vipBoosts = { crown: exp }
+        } else if (selectedVip === 'spotlight') {
+          vipBoosts = { spotlight: exp }
+        } else if (selectedVip === 'catalog') {
+          vipBoosts = { catalog: exp }
+        }
+      }
+    }
 
     const artwork = addArtwork({
       title: form.title,
@@ -78,9 +118,12 @@ export default function Sell() {
       width: Number(form.width),
       height: Number(form.height),
       depth: form.depth ? Number(form.depth) : undefined,
-      imageUrl: form.imageUrl || `https://picsum.photos/seed/${Date.now()}/800/1000`,
-      aiScore: analysis?.score,
-      aiTips: analysis?.tips,
+      imageUrl: form.imageUrl,
+      imageOptimized: true,
+      seoAlt: form.seoAlt,
+      vipBoosts,
+      aiScore: processed.score,
+      aiTips: processed.tips,
     })
 
     if (artwork) navigate(`/artwork/${artwork.id}`)
@@ -88,6 +131,8 @@ export default function Sell() {
   }
 
   const update = (field: string, value: string) => setForm((f) => ({ ...f, [field]: value }))
+
+  const vipProducts = BOOST_PRODUCTS.filter((b) => b.id !== 'ai_photo')
 
   if (!canAdd.ok) {
     return (
@@ -108,42 +153,56 @@ export default function Sell() {
       <div className="container sell__inner">
         <header className="sell__header">
           <h1>Разместить работу</h1>
-          <p>Тариф: <strong>{tariff?.name}</strong> · {hasAi ? 'AI-анализ Gemini включён' : 'Без AI-анализа'}</p>
+          <p>Тариф: <strong>{tariff?.name}</strong></p>
         </header>
 
         <form className="sell__form card" onSubmit={handleSubmit}>
           <div className="sell__upload">
             <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} hidden />
-            <div className="sell__preview" onClick={() => fileRef.current?.click()}>
-              {preview ? (
-                <img src={preview} alt="Превью" />
-              ) : (
-                <div className="sell__upload-placeholder">
-                  <span>📷</span>
-                  <p>Нажмите для загрузки фото</p>
-                  <small>JPEG, PNG до 10 МБ</small>
+            <div className="sell__preview-row">
+              {rawPreview && (
+                <div className="sell__preview-box">
+                  <span className="sell__preview-label">Оригинал</span>
+                  <img src={rawPreview} alt="Оригинал" />
                 </div>
               )}
+              <div className="sell__preview" onClick={() => !preview && fileRef.current?.click()}>
+                {preview ? (
+                  <>
+                    <span className="sell__preview-label">AI · 800×1000 SEO</span>
+                    <img src={preview} alt={form.seoAlt || 'Обработанное'} />
+                  </>
+                ) : (
+                  <div className="sell__upload-placeholder">
+                    <span>📷</span>
+                    <p>Загрузите фото работы</p>
+                    <small>JPEG, PNG до 15 МБ</small>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {analyzing && <p className="sell__analyzing">Gemini анализирует фото...</p>}
+            {rawPreview && !aiPaid && (
+              <button
+                type="button"
+                className="btn btn-primary sell__ai-btn"
+                onClick={handleAiProcess}
+                disabled={payingAi || processing}
+              >
+                {payingAi ? 'Оплата...' : processing ? 'Gemini обрабатывает...' : `✨ AI-обработка — ${formatPrice(AI_PHOTO_PRICE)}`}
+              </button>
+            )}
 
-            {analysis && (
+            {aiPaid && <p className="sell__ai-paid">✓ AI-обработка оплачена</p>}
+
+            {processed && (
               <div className="sell__analysis card">
                 <div className="sell__analysis-score">
-                  Оценка: <strong>{analysis.score}/10</strong>
-                  {analysis.ready ? ' ✓ Готово' : ' — нужны правки'}
+                  Оценка: <strong>{processed.score}/10</strong>
+                  · {processed.width}×{processed.height} · {processed.sizeKb} КБ
                 </div>
-                {analysis.issues.length > 0 && (
-                  <ul className="sell__analysis-issues">
-                    {analysis.issues.map((i) => <li key={i}>{i}</li>)}
-                  </ul>
-                )}
-                {analysis.tips.length > 0 && (
-                  <ul className="sell__analysis-tips">
-                    {analysis.tips.map((t) => <li key={t}>{t}</li>)}
-                  </ul>
-                )}
+                <p className="sell__seo-alt">SEO alt: {processed.seoAlt}</p>
+                {processed.tips.map((t) => <p key={t} className="sell__tip">💡 {t}</p>)}
               </div>
             )}
           </div>
@@ -157,17 +216,14 @@ export default function Sell() {
                 ))}
               </select>
             </div>
-
             <div className="form-group">
               <label>Название</label>
-              <input required value={form.title} onChange={(e) => update('title', e.target.value)} placeholder="Название работы" />
+              <input required value={form.title} onChange={(e) => update('title', e.target.value)} />
             </div>
-
             <div className="form-group">
-              <label>Описание</label>
-              <textarea required rows={4} value={form.description} onChange={(e) => update('description', e.target.value)} placeholder="Техника, материалы..." />
+              <label>Описание (SEO)</label>
+              <textarea required rows={3} value={form.description} onChange={(e) => update('description', e.target.value)} />
             </div>
-
             <div className="form-row">
               <div className="form-group">
                 <label>Цена (₾)</label>
@@ -178,19 +234,38 @@ export default function Sell() {
                 <input type="number" required min={5} value={form.width} onChange={(e) => update('width', e.target.value)} />
               </div>
             </div>
-
             <div className="form-row">
               <div className="form-group">
                 <label>Высота (см)</label>
                 <input type="number" required min={5} value={form.height} onChange={(e) => update('height', e.target.value)} />
               </div>
               <div className="form-group">
-                <label>Глубина (см, для скульптур)</label>
+                <label>Глубина (см)</label>
                 <input type="number" min={0} value={form.depth} onChange={(e) => update('depth', e.target.value)} />
               </div>
             </div>
 
-            <button type="submit" className="btn btn-primary sell__submit">Опубликовать лот</button>
+            <div className="sell__vip">
+              <h3>VIP-размещение (опционально)</h3>
+              <div className="sell__vip-grid">
+                {vipProducts.map((b) => (
+                  <button
+                    key={b.id}
+                    type="button"
+                    className={`sell__vip-item ${selectedVip === b.id ? 'sell__vip-item--active' : ''}`}
+                    onClick={() => setSelectedVip(selectedVip === b.id ? null : b.id as VipBoostType | 'pack')}
+                  >
+                    <span className="sell__vip-icon">{b.icon}</span>
+                    <span className="sell__vip-name">{b.name}</span>
+                    <span className="sell__vip-price">{formatPrice(b.price)}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button type="submit" className="btn btn-primary sell__submit" disabled={!aiPaid}>
+              Опубликовать лот
+            </button>
           </div>
         </form>
       </div>

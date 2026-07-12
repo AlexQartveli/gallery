@@ -3,9 +3,9 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Text, useTexture } from '@react-three/drei'
 import * as THREE from 'three'
 import { input, consumeLookDelta, addLookDelta } from '../../gallery/input'
-import type { Artwork } from '../../types'
-import type { CategoryId } from '../../types'
+import type { Artwork, CategoryId } from '../../types'
 import { formatPrice } from '../../data/tariffs'
+import { isBoostActive } from '../../data/boosts'
 
 const EYE_H = 1.6
 const SPEED = 4
@@ -75,17 +75,35 @@ function WallArt({ artwork, position, rotation }: { artwork: Artwork; position: 
   const aspect = artwork.width / artwork.height
   const h = 1.5
   const w = Math.min(h * aspect, 2.2)
+  const hasCrown = isBoostActive(artwork.vipBoosts?.crown)
+  const hasSpotlight = isBoostActive(artwork.vipBoosts?.spotlight)
 
   return (
     <group position={position} rotation={rotation}>
+      {hasSpotlight && (
+        <spotLight
+          position={[0, 1.2, 0.8]}
+          angle={0.5}
+          penumbra={0.6}
+          intensity={4}
+          distance={6}
+          color="#fff8e7"
+          castShadow={false}
+        />
+      )}
       <mesh position={[0, 0, -0.04]}>
         <boxGeometry args={[w + 0.12, h + 0.12, 0.06]} />
-        <meshStandardMaterial color="#6b5a45" roughness={0.7} />
+        <meshStandardMaterial color={hasCrown ? '#9a7b4f' : '#6b5a45'} roughness={0.7} emissive={hasSpotlight ? '#332200' : '#000000'} />
       </mesh>
       <mesh position={[0, 0, 0.01]} userData={{ artwork }}>
         <planeGeometry args={[w, h]} />
         <meshBasicMaterial map={texture} />
       </mesh>
+      {hasCrown && (
+        <Text position={[0, h / 2 + 0.28, 0.06]} fontSize={0.18} anchorX="center">
+          👑
+        </Text>
+      )}
       <Text position={[0, -h / 2 - 0.25, 0.03]} fontSize={0.1} color="#c9a962" anchorX="center" maxWidth={w + 0.3}>
         {artwork.title}
       </Text>
@@ -97,7 +115,12 @@ function WallArt({ artwork, position, rotation }: { artwork: Artwork; position: 
 }
 
 function getPositions(artworks: Artwork[]) {
-  const items = artworks.slice(0, 10)
+  const sorted = [...artworks].sort((a, b) => {
+    const aV = (isBoostActive(a.vipBoosts?.crown) ? 2 : 0) + (isBoostActive(a.vipBoosts?.spotlight) ? 1 : 0)
+    const bV = (isBoostActive(b.vipBoosts?.crown) ? 2 : 0) + (isBoostActive(b.vipBoosts?.spotlight) ? 1 : 0)
+    return bV - aV
+  })
+  const items = sorted.slice(0, 10)
   const positions: { artwork: Artwork; position: [number, number, number]; rotation: [number, number, number] }[] = []
   const y = 1.8
   const hw = ROOM.w / 2 - 0.3

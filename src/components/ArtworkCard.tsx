@@ -2,6 +2,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore'
 import { getCategory } from '../data/categories'
 import { formatPrice } from '../data/tariffs'
+import { isBoostActive } from '../data/boosts'
 import type { Artwork } from '../types'
 import './ArtworkCard.css'
 
@@ -15,12 +16,16 @@ export default function ArtworkCard({ artwork, compact }: ArtworkCardProps) {
   const cat = getCategory(artwork.category)
   const navigate = useNavigate()
 
+  const hasCrown = isBoostActive(artwork.vipBoosts?.crown)
+  const hasCatalog = isBoostActive(artwork.vipBoosts?.catalog)
+
   return (
     <Link to={`/artwork/${artwork.id}`} className={`artwork-card card ${compact ? 'artwork-card--compact' : ''}`}>
       <div className="artwork-card__image-wrap">
-        <img src={artwork.imageUrl} alt={artwork.title} loading="lazy" />
+        <img src={artwork.imageUrl} alt={artwork.seoAlt || artwork.title} loading="lazy" />
         <span className="artwork-card__cat">{cat?.icon} {cat?.name}</span>
-        {artwork.featured && <span className="artwork-card__featured">VIP</span>}
+        {hasCrown && <span className="artwork-card__crown">👑</span>}
+        {(hasCatalog || artwork.featured) && <span className="artwork-card__featured">VIP</span>}
         <span className={`badge ${artwork.status === 'active' ? 'badge-available' : 'badge-sold'}`}>
           {artwork.status === 'active' ? 'В продаже' : artwork.status === 'sold' ? 'Продано' : artwork.status}
         </span>

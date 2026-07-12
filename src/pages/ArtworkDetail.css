@@ -67,6 +67,8 @@
 
 .artwork-detail__buy { padding: 1rem 2.5rem; margin-bottom: 0.75rem; display: inline-flex; }
 
+.artwork-detail__promote { display: inline-flex; margin-left: 0.5rem; }
+
 .artwork-detail__gallery { display: inline-flex; }
 
 .artwork-detail__sold { color: var(--danger); font-weight: 500; }

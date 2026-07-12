@@ -109,6 +109,14 @@ export function generateSeedArtworks(): Artwork[] {
         expiresAt: new Date(Date.now() + (90 - daysAgo) * 86400000).toISOString(),
         featured: seededRandom(seed + 600) > 0.75,
         aiScore: 7 + Math.floor(seededRandom(seed + 700) * 3),
+        imageOptimized: idx <= 8,
+        ...(idx <= 4 ? {
+          vipBoosts: {
+            crown: new Date(Date.now() + 30 * 86400000).toISOString(),
+            spotlight: idx <= 2 ? new Date(Date.now() + 30 * 86400000).toISOString() : undefined,
+            catalog: idx <= 3 ? new Date(Date.now() + 14 * 86400000).toISOString() : undefined,
+          },
+        } : {}),
       })
     }
   }

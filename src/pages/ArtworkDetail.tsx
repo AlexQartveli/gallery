@@ -62,7 +62,10 @@ export default function ArtworkDetail() {
             </dl>
 
             {artwork.status === 'active' ? (
-              <Link to={`/checkout/${artwork.id}`} className="btn btn-primary artwork-detail__buy">Купить</Link>
+              <>
+                <Link to={`/checkout/${artwork.id}`} className="btn btn-primary artwork-detail__buy">Купить</Link>
+                <Link to={`/promote/${artwork.id}`} className="btn btn-secondary artwork-detail__promote">👑 VIP-размещение</Link>
+              </>
             ) : (
               <p className="artwork-detail__sold">Эта работа уже продана</p>
             )}

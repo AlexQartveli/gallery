@@ -3,12 +3,15 @@ import { persist } from 'zustand/middleware'
 import type {
   Artist,
   Artwork,
+  BoostOrder,
   NewArtwork,
   PlacementOrder,
   PurchaseOrder,
+  VipBoosts,
 } from '../types'
 import { SEED_ARTISTS, SEED_ARTWORKS } from '../data/seed'
 import { getTariff } from '../data/tariffs'
+import { getBoost } from '../data/boosts'
 
 interface CurrentUser {
   artistId: string
@@ -21,6 +24,7 @@ interface AppState {
   artworks: Artwork[]
   placementOrders: PlacementOrder[]
   purchaseOrders: PurchaseOrder[]
+  boostOrders: BoostOrder[]
   currentUser: CurrentUser | null
 
   getArtist: (id: string) => Artist | undefined
@@ -34,7 +38,20 @@ interface AppState {
   addArtwork: (artwork: NewArtwork) => Artwork | null
   purchaseArtwork: (artworkId: string, buyer: { name: string; email: string; address: string }) => PurchaseOrder | null
   payPlacement: (tariffId: string, artistId: string) => PlacementOrder | null
+  payBoost: (boostId: string, artistId: string, artworkId?: string) => BoostOrder | null
+  applyBoostToArtwork: (artworkId: string, boostId: string) => void
   canAddListing: (artistId: string) => { ok: boolean; reason?: string }
+}
+
+function buildVipBoosts(boostId: string, periodDays: number): Partial<VipBoosts> {
+  const expires = new Date(Date.now() + periodDays * 86400000).toISOString()
+  if (boostId === 'pack') {
+    return { crown: expires, spotlight: expires, catalog: expires }
+  }
+  if (boostId === 'crown') return { crown: expires }
+  if (boostId === 'spotlight') return { spotlight: expires }
+  if (boostId === 'catalog') return { catalog: expires }
+  return {}
 }
 
 export const useStore = create<AppState>()(
@@ -44,12 +61,21 @@ export const useStore = create<AppState>()(
       artworks: SEED_ARTWORKS,
       placementOrders: [],
       purchaseOrders: [],
+      boostOrders: [],
       currentUser: { artistId: 'artist-1', tariffId: 'studio', tariffExpiresAt: new Date(Date.now() + 180 * 86400000).toISOString() },
 
       getArtist: (id) => get().artists.find((a) => a.id === id),
       getArtwork: (id) => get().artworks.find((a) => a.id === id),
       getArtistWorks: (artistId) => get().artworks.filter((a) => a.artistId === artistId && a.status !== 'draft'),
-      getCategoryWorks: (category) => get().artworks.filter((a) => a.category === category && a.status === 'active'),
+      getCategoryWorks: (category) => {
+        const list = get().artworks.filter((a) => a.category === category && a.status === 'active')
+        return list.sort((a, b) => {
+          const aVip = a.vipBoosts?.catalog ? 1 : 0
+          const bVip = b.vipBoosts?.catalog ? 1 : 0
+          if (aVip !== bVip) return bVip - aVip
+          return (b.featured ? 1 : 0) - (a.featured ? 1 : 0)
+        })
+      },
       getActiveListingsCount: (artistId) =>
         get().artworks.filter((a) => a.artistId === artistId && a.status === 'active').length,
 
@@ -101,7 +127,7 @@ export const useStore = create<AppState>()(
           status: 'active',
           createdAt: new Date().toISOString(),
           expiresAt: new Date(Date.now() + periodDays * 86400000).toISOString(),
-          featured: tariff?.featured ?? false,
+          featured: data.vipBoosts?.catalog ? true : (tariff?.featured ?? false),
         }
 
         set((s) => ({ artworks: [artwork, ...s.artworks] }))
@@ -124,17 +150,56 @@ export const useStore = create<AppState>()(
 
         set((s) => ({
           placementOrders: [order, ...s.placementOrders],
-          artists: s.artists.map((a) =>
-            a.id === artistId ? { ...a, tariffId } : a
-          ),
-          currentUser: {
-            artistId,
-            tariffId,
-            tariffExpiresAt: order.expiresAt,
-          },
+          artists: s.artists.map((a) => (a.id === artistId ? { ...a, tariffId } : a)),
+          currentUser: { artistId, tariffId, tariffExpiresAt: order.expiresAt },
         }))
 
         return order
+      },
+
+      payBoost: (boostId, artistId, artworkId) => {
+        const boost = getBoost(boostId)
+        if (!boost) return null
+
+        const order: BoostOrder = {
+          id: `boost-${Date.now()}`,
+          boostId,
+          artistId,
+          artworkId,
+          amount: boost.price,
+          status: 'paid',
+          createdAt: new Date().toISOString(),
+          expiresAt: boost.periodDays > 0
+            ? new Date(Date.now() + boost.periodDays * 86400000).toISOString()
+            : new Date().toISOString(),
+        }
+
+        set((s) => ({ boostOrders: [order, ...s.boostOrders] }))
+
+        if (artworkId && boostId !== 'ai_photo') {
+          get().applyBoostToArtwork(artworkId, boostId)
+        }
+
+        return order
+      },
+
+      applyBoostToArtwork: (artworkId, boostId) => {
+        const boost = getBoost(boostId)
+        if (!boost || boost.periodDays === 0) return
+
+        const vipUpdate = buildVipBoosts(boostId, boost.periodDays)
+
+        set((s) => ({
+          artworks: s.artworks.map((a) => {
+            if (a.id !== artworkId) return a
+            const merged: VipBoosts = { ...a.vipBoosts, ...vipUpdate }
+            return {
+              ...a,
+              vipBoosts: merged,
+              featured: merged.catalog ? true : a.featured,
+            }
+          }),
+        }))
       },
 
       purchaseArtwork: (artworkId, buyer) => {
@@ -162,11 +227,6 @@ export const useStore = create<AppState>()(
         return order
       },
     }),
-    { name: 'geo-gallery-store-v2' }
+    { name: 'geo-gallery-store-v3' }
   )
 )
-
-export function hasAiAccess(tariffId?: string): boolean {
-  const tariff = getTariff(tariffId ?? '')
-  return tariff?.aiAnalysis ?? false
-}
