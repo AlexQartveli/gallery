@@ -49,7 +49,7 @@ export default function Pricing() {
 
         <section className="pricing-page__boosts">
           <h2>Дополнительные услуги</h2>
-          <p className="pricing-page__boosts-desc">AI-обработка и VIP-размещение оплачиваются отдельно</p>
+          <p className="pricing-page__boosts-desc">Обработка фото и VIP-размещение оплачиваются отдельно</p>
           <div className="pricing-page__boosts-grid">
             {BOOST_PRODUCTS.map((b) => (
               <div key={b.id} className="pricing-page__boost card">

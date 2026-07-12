@@ -4,7 +4,7 @@ import { useStore } from '../store/useStore'
 import { CATEGORIES } from '../data/categories'
 import { getTariff, formatPrice } from '../data/tariffs'
 import { BOOST_PRODUCTS } from '../data/boosts'
-import { processPhoto, AI_PHOTO_PRICE } from '../lib/gemini'
+import { processPhoto, PHOTO_PROCESS_PRICE } from '../lib/photoProcessor'
 import type { CategoryId, ProcessedPhoto, VipBoostType } from '../types'
 import './Sell.css'
 
@@ -32,10 +32,10 @@ export default function Sell() {
   const [rawPreview, setRawPreview] = useState('')
   const [preview, setPreview] = useState('')
   const [processing, setProcessing] = useState(false)
-  const [aiPaid, setAiPaid] = useState(false)
+  const [photoPaid, setPhotoPaid] = useState(false)
   const [processed, setProcessed] = useState<ProcessedPhoto | null>(null)
   const [selectedVip, setSelectedVip] = useState<VipBoostType | 'pack' | null>(null)
-  const [payingAi, setPayingAi] = useState(false)
+  const [payingPhoto, setPayingPhoto] = useState(false)
 
   const tariff = getTariff(currentUser?.tariffId ?? artist?.tariffId ?? '')
 
@@ -51,18 +51,18 @@ export default function Sell() {
     setRawPreview(dataUrl)
     setPreview('')
     setProcessed(null)
-    setAiPaid(false)
+    setPhotoPaid(false)
   }
 
-  const handleAiProcess = async () => {
+  const handlePhotoProcess = async () => {
     const file = rawFileRef.current
     if (!file || !currentUser) return
 
-    setPayingAi(true)
+    setPayingPhoto(true)
     await new Promise((r) => setTimeout(r, 1500))
     payBoost('ai_photo', currentUser.artistId)
-    setAiPaid(true)
-    setPayingAi(false)
+    setPhotoPaid(true)
+    setPayingPhoto(false)
 
     setProcessing(true)
     try {
@@ -86,8 +86,8 @@ export default function Sell() {
     e.preventDefault()
     if (!currentUser || !canAdd.ok) return
 
-    if (!aiPaid || !processed) {
-      alert(`Сначала оплатите AI-обработку фото (${AI_PHOTO_PRICE} ₾)`)
+    if (!photoPaid || !processed) {
+      alert(`Сначала оплатите обработку фото (${PHOTO_PROCESS_PRICE} ₾)`)
       return
     }
 
@@ -169,7 +169,7 @@ export default function Sell() {
               <div className="sell__preview" onClick={() => !preview && fileRef.current?.click()}>
                 {preview ? (
                   <>
-                    <span className="sell__preview-label">AI · 800×1000 SEO</span>
+                    <span className="sell__preview-label">Обработанное · {processed?.width}×{processed?.height}</span>
                     <img src={preview} alt={form.seoAlt || 'Обработанное'} />
                   </>
                 ) : (
@@ -182,18 +182,18 @@ export default function Sell() {
               </div>
             </div>
 
-            {rawPreview && !aiPaid && (
+            {rawPreview && !photoPaid && (
               <button
                 type="button"
                 className="btn btn-primary sell__ai-btn"
-                onClick={handleAiProcess}
-                disabled={payingAi || processing}
+                onClick={handlePhotoProcess}
+                disabled={payingPhoto || processing}
               >
-                {payingAi ? 'Оплата...' : processing ? 'Gemini обрабатывает...' : `✨ AI-обработка — ${formatPrice(AI_PHOTO_PRICE)}`}
+                {payingPhoto ? 'Оплата...' : processing ? 'Обработка...' : `📷 Обработка фото — ${formatPrice(PHOTO_PROCESS_PRICE)}`}
               </button>
             )}
 
-            {aiPaid && <p className="sell__ai-paid">✓ AI-обработка оплачена</p>}
+            {photoPaid && <p className="sell__ai-paid">✓ Обработка фото оплачена</p>}
 
             {processed && (
               <div className="sell__analysis card">
@@ -263,7 +263,7 @@ export default function Sell() {
               </div>
             </div>
 
-            <button type="submit" className="btn btn-primary sell__submit" disabled={!aiPaid}>
+            <button type="submit" className="btn btn-primary sell__submit" disabled={!photoPaid}>
               Опубликовать лот
             </button>
           </div>

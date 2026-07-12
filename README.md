@@ -14,16 +14,12 @@ npm run build
 # загрузить dist/ на хостинг
 ```
 
-## Gemini API (только на сервере)
+## API обработки фото
 
-**Ключ API не хранится в GitHub.** Настраивается только на хостинге:
+PHP-скрипт `server/api/process-photo.php` сжимает изображения с сохранением пропорций (без обрезки) и добавляет деревянную рамку с паспарту.
 
-1. Загрузите `server/api/*.php` на сервер в `public_html/api/` (скрипт `scripts/deploy-api.sh`)
-2. Создайте на сервере файл `public_html/api/config.php` вручную (SSH / панель Beget):
-
-```php
-<?php
-return ['gemini_api_key' => 'ваш_ключ'];
+```bash
+scripts/deploy-api.sh
 ```
 
-3. Не коммитьте и не пушьте `config.php`
+Файлы загружаются в `public_html/api/` на хостинге.

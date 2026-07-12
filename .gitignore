@@ -10,7 +10,8 @@ tsconfig.tsbuildinfo
 public/api/
 /api/
 server/api/config.php
-**/config.php
+server/gemini-config.php
+**/gemini-config.php
 .env
 .env.*
 !.env.example

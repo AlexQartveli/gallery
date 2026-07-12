@@ -55,7 +55,7 @@ export default function Home() {
           <h2 className="section-title">Как это работает</h2>
           <div className="how__grid">
             <div className="how__step"><span className="how__num">01</span><h3>Выберите тариф</h3><p>Оплатите размещение — от 15 ₾/мес</p></div>
-            <div className="how__step"><span className="how__num">02</span><h3>Загрузите работу</h3><p>AI-обработка фото — 5 ₾ (Gemini)</p></div>
+            <div className="how__step"><span className="how__num">02</span><h3>Загрузите работу</h3><p>Обработка фото с деревянной рамкой — 5 ₾</p></div>
             <div className="how__step"><span className="how__num">03</span><h3>Попадите в галерею</h3><p>Отдельная 3D-галерея для каждой категории</p></div>
             <div className="how__step"><span className="how__num">04</span><h3>Продажа</h3><p>Geo Gallery выкупает и доставляет покупателю</p></div>
           </div>

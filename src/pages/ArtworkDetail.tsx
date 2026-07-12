@@ -33,7 +33,7 @@ export default function ArtworkDetail() {
             <img src={artwork.imageUrl} alt={artwork.title} />
             {artwork.aiScore && (
               <div className="artwork-detail__ai">
-                AI-оценка фото: {artwork.aiScore}/10
+                Качество фото: {artwork.aiScore}/10
               </div>
             )}
           </div>
