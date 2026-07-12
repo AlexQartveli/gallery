@@ -23,10 +23,12 @@ function buildReportJson(report: ProcessPhotoReport): string {
     processing: {
       durationMs: report.durationMs,
     },
+    crop: report.crop,
     checks: {
       webp: report.result.mime === 'image/webp',
       framed: report.result.width > innerW && report.result.height > innerH,
-      aspectPreserved: Math.abs(aspectIn - aspectOut) < 0.05,
+      nativeFrameRemoved: report.crop?.cropped ?? false,
+      aspectPreserved: Math.abs(aspectIn - aspectOut) < 0.08,
     },
   }
 

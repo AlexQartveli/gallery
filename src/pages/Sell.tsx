@@ -201,7 +201,7 @@ export default function Sell() {
                   Оценка: <strong>{processed.score}/10</strong>
                   · {processed.width}×{processed.height} · {processed.sizeKb} КБ
                 </div>
-                <p className="sell__seo-alt">SEO alt: {processed.seoAlt}</p>
+                <p className="sell__seo-alt">{processed.tips[0]}</p>
                 {processed.tips.map((t) => <p key={t} className="sell__tip">💡 {t}</p>)}
               </div>
             )}
