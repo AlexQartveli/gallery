@@ -4,7 +4,7 @@ export const BOOST_PRODUCTS: BoostProduct[] = [
   {
     id: 'ai_photo',
     name: 'Обработка фото',
-    description: 'Обрезка родной рамки, наша деревянная рамка, WebP',
+    description: 'Обрезка родной рамки, выравнивание перспективы, наша деревянная рамка',
     price: 5,
     periodDays: 0,
     icon: '📷',

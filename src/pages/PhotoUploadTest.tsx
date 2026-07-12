@@ -24,10 +24,12 @@ function buildReportJson(report: ProcessPhotoReport): string {
       durationMs: report.durationMs,
     },
     crop: report.crop,
+    extractMethod: report.extractMethod,
     checks: {
       webp: report.result.mime === 'image/webp',
       framed: report.result.width > innerW && report.result.height > innerH,
       nativeFrameRemoved: report.crop?.cropped ?? false,
+      perspectiveCorrected: report.extractMethod === 'perspective',
       aspectPreserved: Math.abs(aspectIn - aspectOut) < 0.08,
     },
   }

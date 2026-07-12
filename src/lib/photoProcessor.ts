@@ -1,4 +1,11 @@
 import type { ProcessedPhoto } from '../types'
+import {
+  detectPerspectiveQuad,
+  estimateQuadSkew,
+  scaleQuad,
+  warpQuadToCanvas,
+  type Point,
+} from './perspective'
 
 const PHOTO_PROCESS_PRICE = 5
 const MAX_WIDTH = 800
@@ -10,6 +17,15 @@ interface CropRect {
   sy: number
   sw: number
   sh: number
+}
+
+type ExtractMethod = 'perspective' | 'rect' | 'none'
+
+interface ExtractResult {
+  canvas: HTMLCanvasElement
+  method: ExtractMethod
+  cropped: boolean
+  quad?: Point[]
 }
 
 function frameWidth(w: number, h: number): number {
@@ -203,19 +219,22 @@ function detectBounds(data: Uint8ClampedArray, w: number, h: number) {
   }
 }
 
-function detectNativeFrameCrop(img: ImageBitmap): CropRect {
+function createAnalysis(img: ImageBitmap) {
   const maxAnalyze = 960
   const scale = Math.min(1, maxAnalyze / Math.max(img.width, img.height))
   const w = Math.max(1, Math.round(img.width * scale))
   const h = Math.max(1, Math.round(img.height * scale))
-
   const canvas = document.createElement('canvas')
   canvas.width = w
   canvas.height = h
   const ctx = canvas.getContext('2d')!
   ctx.drawImage(img, 0, 0, w, h)
   const data = ctx.getImageData(0, 0, w, h).data
+  return { data, w, h, scale }
+}
 
+function detectNativeFrameCrop(img: ImageBitmap): CropRect {
+  const { data, w, h, scale } = createAnalysis(img)
   const { top, bottom, left, right } = detectBounds(data, w, h)
 
   const cropW = right - left
@@ -250,6 +269,34 @@ function detectNativeFrameCrop(img: ImageBitmap): CropRect {
     sy: Math.max(0, Math.round(top * inv)),
     sw: Math.min(img.width, Math.round(cropW * inv)),
     sh: Math.min(img.height, Math.round(cropH * inv)),
+  }
+}
+
+function extractPainting(img: ImageBitmap): ExtractResult {
+  const { data, w, h, scale } = createAnalysis(img)
+  const quad = detectPerspectiveQuad(data, w, h)
+
+  if (quad && estimateQuadSkew(quad) > 0.02) {
+    const fullQuad = scaleQuad(quad, scale)
+    const warped = warpQuadToCanvas(img, fullQuad)
+    if (warped) {
+      return { canvas: warped, method: 'perspective', cropped: true, quad: fullQuad }
+    }
+  }
+
+  const crop = detectNativeFrameCrop(img)
+  const cropped = crop.sw < img.width || crop.sh < img.height
+
+  const canvas = document.createElement('canvas')
+  canvas.width = crop.sw
+  canvas.height = crop.sh
+  const ctx = canvas.getContext('2d')!
+  ctx.drawImage(img, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, crop.sw, crop.sh)
+
+  return {
+    canvas,
+    method: cropped ? 'rect' : 'none',
+    cropped,
   }
 }
 
@@ -307,15 +354,14 @@ function canvasToWebp(canvas: HTMLCanvasElement): { image: string; mime: string 
   return { image: jpeg, mime: 'image/jpeg' }
 }
 
-async function processImage(file: File, category?: string): Promise<ProcessedPhoto> {
-  const img = await createImageBitmap(file)
-  const crop = detectNativeFrameCrop(img)
-  const cropped = crop.sw < img.width || crop.sh < img.height
+async function processImageFromExtracted(extracted: ExtractResult, category?: string): Promise<ProcessedPhoto> {
+  const artW = extracted.canvas.width
+  const artH = extracted.canvas.height
 
   const estFrame = frameWidth(MAX_WIDTH, MAX_HEIGHT)
   const estMat = matWidth(MAX_WIDTH, MAX_HEIGHT)
   const pad = 2 * (estFrame + estMat)
-  const { width, height } = fitDimensions(crop.sw, crop.sh, MAX_WIDTH - pad, MAX_HEIGHT - pad)
+  const { width, height } = fitDimensions(artW, artH, MAX_WIDTH - pad, MAX_HEIGHT - pad)
 
   const frame = frameWidth(width, height)
   const mat = matWidth(width, height)
@@ -329,14 +375,17 @@ async function processImage(file: File, category?: string): Promise<ProcessedPho
   const ctx = canvas.getContext('2d')!
 
   drawWoodenFrame(ctx, width, height, mat, frame)
-  ctx.drawImage(img, crop.sx, crop.sy, crop.sw, crop.sh, offset, offset, width, height)
+  ctx.drawImage(extracted.canvas, offset, offset, width, height)
 
   const { image, mime } = canvasToWebp(canvas)
   const sizeKb = Math.round((image.length * 0.75) / 1024)
 
-  const tips = cropped
-    ? ['Родная рамка обрезана, добавлена рамка Geo Gallery']
-    : ['Рамка Geo Gallery добавлена']
+  const tips =
+    extracted.method === 'perspective'
+      ? ['Перспектива выровнена, родная рамка обрезана']
+      : extracted.cropped
+        ? ['Родная рамка обрезана, добавлена рамка Geo Gallery']
+        : ['Рамка Geo Gallery добавлена']
 
   return {
     image,
@@ -371,6 +420,7 @@ export interface ProcessPhotoReport {
     height: number
   }
   crop?: CropRect & { cropped: boolean }
+  extractMethod?: ExtractMethod
 }
 
 export async function processPhotoDetailed(file: File, category?: string): Promise<ProcessPhotoReport> {
@@ -384,16 +434,17 @@ export async function processPhotoDetailed(file: File, category?: string): Promi
   }
 
   const cropRect = detectNativeFrameCrop(img)
-  const cropped = cropRect.sw < img.width || cropRect.sh < img.height
 
   const start = performance.now()
-  const result = await processImage(file, category)
+  const extracted = extractPainting(img)
+  const result = await processImageFromExtracted(extracted, category)
 
   return {
     result,
     durationMs: Math.round(performance.now() - start),
     original,
-    crop: { ...cropRect, cropped },
+    crop: { ...cropRect, cropped: extracted.cropped },
+    extractMethod: extracted.method,
   }
 }
 
