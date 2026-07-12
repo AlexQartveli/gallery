@@ -1,0 +1,79 @@
+.painting-card {
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.painting-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--accent);
+}
+
+.painting-card__image-wrap {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.painting-card__image-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s;
+}
+
+.painting-card:hover .painting-card__image-wrap img {
+  transform: scale(1.05);
+}
+
+.painting-card__image-wrap .badge {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+}
+
+.painting-card__body {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.painting-card__title {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.painting-card__artist {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.painting-card__desc {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.painting-card__price {
+  margin-top: auto;
+  padding-top: 0.75rem;
+  font-weight: 600;
+  color: var(--accent);
+  font-size: 1.0625rem;
+}
+
+.painting-card--compact .painting-card__body {
+  padding: 0.875rem;
+}
+
+.painting-card--compact .painting-card__title {
+  font-size: 1.0625rem;
+}

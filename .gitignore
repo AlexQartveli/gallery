@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+dist/
+
+# Build
+*.local
+dist/
+tsconfig.tsbuildinfo
+
+# Editor
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

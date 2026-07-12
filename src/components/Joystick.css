@@ -1,0 +1,58 @@
+.joystick {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  z-index: 200;
+  touch-action: none;
+  user-select: none;
+}
+
+.joystick__stick {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(201, 169, 98, 0.6);
+  border: 2px solid rgba(201, 169, 98, 0.9);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.look-zone {
+  position: fixed;
+  top: 64px;
+  right: 0;
+  bottom: 0;
+  left: 120px;
+  z-index: 150;
+  touch-action: none;
+}
+
+@media (min-width: 769px) {
+  .joystick,
+  .look-zone {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .joystick {
+    width: 72px;
+    height: 72px;
+    bottom: 20px;
+    left: 16px;
+  }
+
+  .joystick__stick {
+    width: 30px;
+    height: 30px;
+  }
+}
