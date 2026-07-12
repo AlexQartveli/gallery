@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useStore } from '../store/useStore'
 import { CATEGORIES } from '../data/categories'
-import { TARIFFS } from '../data/tariffs'
+import { TARIFFS, formatPrice } from '../data/tariffs'
 import ArtworkCard from '../components/ArtworkCard'
 import ArtistCard from '../components/ArtistCard'
 import './Home.css'
@@ -54,7 +54,7 @@ export default function Home() {
         <div className="container">
           <h2 className="section-title">Как это работает</h2>
           <div className="how__grid">
-            <div className="how__step"><span className="how__num">01</span><h3>Выберите тариф</h3><p>Оплатите размещение — от 299 ₽/мес</p></div>
+            <div className="how__step"><span className="how__num">01</span><h3>Выберите тариф</h3><p>Оплатите размещение — от 15 ₾/мес</p></div>
             <div className="how__step"><span className="how__num">02</span><h3>Загрузите работу</h3><p>AI Gemini проверит качество фото</p></div>
             <div className="how__step"><span className="how__num">03</span><h3>Попадите в галерею</h3><p>Отдельная 3D-галерея для каждой категории</p></div>
             <div className="how__step"><span className="how__num">04</span><h3>Продажа</h3><p>Geo Gallery выкупает и доставляет покупателю</p></div>
@@ -93,7 +93,7 @@ export default function Home() {
             {TARIFFS.map((t) => (
               <div key={t.id} className="pricing-preview__item card">
                 <h3>{t.name}</h3>
-                <p className="pricing-preview__price">{t.price} ₽</p>
+                <p className="pricing-preview__price">{formatPrice(t.price)}</p>
                 <p className="pricing-preview__period">{t.periodDays} дней · {t.maxListings >= 999 ? '∞' : t.maxListings} лотов</p>
               </div>
             ))}

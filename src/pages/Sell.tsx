@@ -170,8 +170,8 @@ export default function Sell() {
 
             <div className="form-row">
               <div className="form-group">
-                <label>Цена (₽)</label>
-                <input type="number" required min={500} value={form.price} onChange={(e) => update('price', e.target.value)} />
+                <label>Цена (₾)</label>
+                <input type="number" required min={20} value={form.price} onChange={(e) => update('price', e.target.value)} />
               </div>
               <div className="form-group">
                 <label>Ширина (см)</label>

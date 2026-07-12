@@ -90,7 +90,7 @@ export function generateSeedArtworks(): Artwork[] {
       idx++
       const seed = idx
       const artist = SEED_ARTISTS[Math.floor(seededRandom(seed) * SEED_ARTISTS.length)]
-      const price = 3000 + Math.floor(seededRandom(seed + 50) * 120000)
+      const price = 150 + Math.floor(seededRandom(seed + 50) * 4350)
       const daysAgo = Math.floor(seededRandom(seed + 100) * 60)
 
       artworks.push({

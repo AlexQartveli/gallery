@@ -4,7 +4,7 @@ export const TARIFFS: Tariff[] = [
   {
     id: 'starter',
     name: 'Старт',
-    price: 299,
+    price: 15,
     periodDays: 30,
     maxListings: 1,
     features: [
@@ -19,7 +19,7 @@ export const TARIFFS: Tariff[] = [
   {
     id: 'artist',
     name: 'Художник',
-    price: 990,
+    price: 49,
     periodDays: 90,
     maxListings: 5,
     features: [
@@ -36,7 +36,7 @@ export const TARIFFS: Tariff[] = [
   {
     id: 'studio',
     name: 'Студия',
-    price: 2490,
+    price: 119,
     periodDays: 180,
     maxListings: 20,
     features: [
@@ -52,7 +52,7 @@ export const TARIFFS: Tariff[] = [
   {
     id: 'gallery',
     name: 'Галерея',
-    price: 4990,
+    price: 249,
     periodDays: 365,
     maxListings: 999,
     features: [
@@ -72,9 +72,9 @@ export function getTariff(id: string) {
 }
 
 export function formatPrice(price: number): string {
-  return new Intl.NumberFormat('ru-RU', {
+  return new Intl.NumberFormat('ka-GE', {
     style: 'currency',
-    currency: 'RUB',
+    currency: 'GEL',
     maximumFractionDigits: 0,
   }).format(price)
 }
