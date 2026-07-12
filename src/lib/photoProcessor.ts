@@ -42,21 +42,6 @@ function median(values: number[]): number {
   return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
 }
 
-function rowVariance(data: Uint8ClampedArray, w: number, y: number, x0: number, x1: number): number {
-  let sum = 0
-  let sumSq = 0
-  let n = 0
-  for (let x = x0; x < x1; x += 2) {
-    const v = lum(data, (y * w + x) * 4)
-    sum += v
-    sumSq += v * v
-    n++
-  }
-  if (!n) return 0
-  const mean = sum / n
-  return sumSq / n - mean * mean
-}
-
 function rowEdge(data: Uint8ClampedArray, w: number, y: number, x0: number, x1: number): number {
   let g = 0
   let n = 0
@@ -69,104 +54,157 @@ function rowEdge(data: Uint8ClampedArray, w: number, y: number, x0: number, x1: 
   return n ? g / n : 0
 }
 
-function colVariance(data: Uint8ClampedArray, w: number, x: number, y0: number, y1: number): number {
-  let sum = 0
-  let sumSq = 0
-  let n = 0
-  for (let y = y0; y < y1; y += 2) {
-    const v = lum(data, (y * w + x) * 4)
-    sum += v
-    sumSq += v * v
-    n++
+function smooth(profile: Float32Array, radius: number): Float32Array {
+  const out = new Float32Array(profile.length)
+  for (let i = 0; i < profile.length; i++) {
+    let sum = 0
+    let n = 0
+    for (let j = Math.max(0, i - radius); j <= Math.min(profile.length - 1, i + radius); j++) {
+      sum += profile[j]
+      n++
+    }
+    out[i] = sum / n
   }
-  if (!n) return 0
-  const mean = sum / n
-  return sumSq / n - mean * mean
+  return out
 }
 
-function colEdge(data: Uint8ClampedArray, w: number, x: number, y0: number, y1: number): number {
-  let g = 0
-  let n = 0
-  for (let y = y0; y < y1; y += 2) {
-    const i1 = (y * w + x) * 4
-    const i2 = (y * w + x + 1) * 4
-    g += Math.abs(lum(data, i2) - lum(data, i1))
-    n++
+function percentile(values: number[], p: number): number {
+  if (!values.length) return 0
+  const sorted = [...values].sort((a, b) => a - b)
+  const idx = Math.min(sorted.length - 1, Math.max(0, Math.floor(sorted.length * p)))
+  return sorted[idx]
+}
+
+function detectHorizontalEdge(
+  data: Uint8ClampedArray,
+  w: number,
+  h: number,
+  x0: number,
+  x1: number,
+  fromTop: boolean,
+  minEdge: number,
+): { pos: number; confidence: number } {
+  const votes: number[] = []
+  const yStart = fromTop ? 2 : h - 3
+  const yEnd = fromTop ? Math.floor(h * 0.44) : Math.floor(h * 0.56)
+  const yStep = fromTop ? 1 : -1
+
+  for (let x = x0; x < x1; x += 2) {
+    let bestY = fromTop ? 0 : h
+    let bestE = 0
+    for (let y = yStart; fromTop ? y < yEnd : y > yEnd; y += yStep) {
+      const i1 = (y * w + x) * 4
+      const i2 = ((y + (fromTop ? 1 : -1)) * w + x) * 4
+      const e = Math.abs(lum(data, i2) - lum(data, i1))
+      if (e > bestE) {
+        bestE = e
+        bestY = y
+      }
+    }
+    if (bestE >= minEdge) votes.push(bestY + (fromTop ? 3 : -3))
   }
-  return n ? g / n : 0
+
+  if (votes.length < (x1 - x0) * 0.12) {
+    return { pos: fromTop ? 0 : h, confidence: 0 }
+  }
+
+  const pos = Math.round(percentile(votes, 0.58))
+  const spread = percentile(votes, 0.9) - percentile(votes, 0.1)
+  const confidence = spread <= h * 0.06 ? 1 : spread <= h * 0.12 ? 0.7 : 0.4
+  return { pos, confidence }
+}
+
+function detectVerticalEdge(
+  data: Uint8ClampedArray,
+  w: number,
+  y0: number,
+  y1: number,
+  fromLeft: boolean,
+  minEdge: number,
+): { pos: number; confidence: number } {
+  const votes: number[] = []
+  const xStart = fromLeft ? 2 : w - 3
+  const xEnd = fromLeft ? Math.floor(w * 0.44) : Math.floor(w * 0.56)
+  const xStep = fromLeft ? 1 : -1
+
+  for (let y = y0; y < y1; y += 2) {
+    let bestX = fromLeft ? 0 : w
+    let bestE = 0
+    for (let x = xStart; fromLeft ? x < xEnd : x > xEnd; x += xStep) {
+      const i1 = (y * w + x) * 4
+      const i2 = (y * w + x + (fromLeft ? 1 : -1)) * 4
+      const e = Math.abs(lum(data, i2) - lum(data, i1))
+      if (e > bestE) {
+        bestE = e
+        bestX = x
+      }
+    }
+    if (bestE >= minEdge) votes.push(bestX + (fromLeft ? 3 : -3))
+  }
+
+  if (votes.length < (y1 - y0) * 0.12) {
+    return { pos: fromLeft ? 0 : w, confidence: 0 }
+  }
+
+  const pos = Math.round(percentile(votes, 0.58))
+  const spread = percentile(votes, 0.9) - percentile(votes, 0.1)
+  const confidence = spread <= w * 0.06 ? 1 : spread <= w * 0.12 ? 0.7 : 0.4
+  return { pos, confidence }
+}
+
+function alignPair(
+  a: { pos: number; confidence: number },
+  b: { pos: number; confidence: number },
+  size: number,
+): { start: number; end: number } {
+  const marginA = a.pos
+  const marginB = size - b.pos
+
+  if (a.confidence === 0 && b.confidence === 0) return { start: 0, end: size }
+  if (a.confidence === 0) return { start: size - marginB, end: marginB }
+  if (b.confidence === 0) return { start: marginA, end: size - marginA }
+
+  const diff = Math.abs(marginA - marginB)
+  const avg = Math.round((marginA + marginB) / 2)
+  const maxM = Math.max(marginA, marginB, 1)
+
+  if (diff / maxM <= 0.22) return { start: avg, end: size - avg }
+  if (a.confidence >= b.confidence) return { start: marginA, end: size - marginA }
+  return { start: marginB, end: size - marginB }
 }
 
 function detectBounds(data: Uint8ClampedArray, w: number, h: number) {
-  const x0 = Math.floor(w * 0.1)
-  const x1 = Math.floor(w * 0.9)
-  const y0 = Math.floor(h * 0.1)
-  const y1 = Math.floor(h * 0.9)
+  const x0 = Math.floor(w * 0.12)
+  const x1 = Math.floor(w * 0.88)
+  const y0 = Math.floor(h * 0.12)
+  const y1 = Math.floor(h * 0.88)
 
-  const centerVariances: number[] = []
-  for (let y = Math.floor(h * 0.28); y < Math.floor(h * 0.72); y += 3) {
-    centerVariances.push(rowVariance(data, w, y, x0, x1))
+  const edgeProfile = new Float32Array(h)
+  for (let y = 1; y < h - 1; y++) {
+    edgeProfile[y] = rowEdge(data, w, y, x0, x1)
   }
-  const refVar = Math.max(median(centerVariances), 80)
+  const smoothed = smooth(edgeProfile, 3)
+  const refEdge = Math.max(median([...smoothed].filter((v) => v > 0)), 3) * 2.2
+  const minEdge = refEdge * 0.85
 
-  const centerEdges: number[] = []
-  for (let y = Math.floor(h * 0.28); y < Math.floor(h * 0.72); y += 3) {
-    centerEdges.push(rowEdge(data, w, y, x0, x1))
+  const topEdge = detectHorizontalEdge(data, w, h, x0, x1, true, minEdge)
+  const bottomEdge = detectHorizontalEdge(data, w, h, x0, x1, false, minEdge)
+  const leftEdge = detectVerticalEdge(data, w, y0, y1, true, minEdge)
+  const rightEdge = detectVerticalEdge(data, w, y0, y1, false, minEdge)
+
+  const vertical = alignPair(topEdge, bottomEdge, h)
+  const horizontal = alignPair(leftEdge, rightEdge, w)
+
+  return {
+    top: vertical.start,
+    bottom: vertical.end,
+    left: horizontal.start,
+    right: horizontal.end,
   }
-  const refEdge = Math.max(median(centerEdges), 2)
-
-  let top = 0
-  let bestTop = 0
-  for (let y = 4; y < Math.floor(h * 0.4); y++) {
-    const edge = rowEdge(data, w, y, x0, x1)
-    const variance = rowVariance(data, w, y + 1, x0, x1)
-    const score = edge / refEdge + variance / refVar
-    if (edge > refEdge * 1.8 && variance > refVar * 0.45 && score > bestTop) {
-      bestTop = score
-      top = y + 2
-    }
-  }
-
-  let bottom = h
-  let bestBottom = 0
-  for (let y = h - 5; y > Math.floor(h * 0.6); y--) {
-    const edge = rowEdge(data, w, y - 1, x0, x1)
-    const variance = rowVariance(data, w, y - 1, x0, x1)
-    const score = edge / refEdge + variance / refVar
-    if (edge > refEdge * 1.8 && variance > refVar * 0.45 && score > bestBottom) {
-      bestBottom = score
-      bottom = y - 2
-    }
-  }
-
-  let left = 0
-  let bestLeft = 0
-  for (let x = 4; x < Math.floor(w * 0.4); x++) {
-    const edge = colEdge(data, w, x, y0, y1)
-    const variance = colVariance(data, w, x + 1, y0, y1)
-    const score = edge / refEdge + variance / refVar
-    if (edge > refEdge * 1.8 && variance > refVar * 0.45 && score > bestLeft) {
-      bestLeft = score
-      left = x + 2
-    }
-  }
-
-  let right = w
-  let bestRight = 0
-  for (let x = w - 5; x > Math.floor(w * 0.6); x--) {
-    const edge = colEdge(data, w, x - 1, y0, y1)
-    const variance = colVariance(data, w, x - 1, y0, y1)
-    const score = edge / refEdge + variance / refVar
-    if (edge > refEdge * 1.8 && variance > refVar * 0.45 && score > bestRight) {
-      bestRight = score
-      right = x - 2
-    }
-  }
-
-  return { top, bottom, left, right }
 }
 
 function detectNativeFrameCrop(img: ImageBitmap): CropRect {
-  const maxAnalyze = 720
+  const maxAnalyze = 960
   const scale = Math.min(1, maxAnalyze / Math.max(img.width, img.height))
   const w = Math.max(1, Math.round(img.width * scale))
   const h = Math.max(1, Math.round(img.height * scale))
