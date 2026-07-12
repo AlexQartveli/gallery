@@ -3,6 +3,7 @@ import type { ProcessedPhoto } from '../types'
 const PHOTO_PROCESS_PRICE = 5
 const MAX_WIDTH = 800
 const MAX_HEIGHT = 1000
+const WEBP_QUALITY = 0.82
 
 function frameWidth(w: number, h: number): number {
   return Math.max(16, Math.round(Math.min(w, h) * 0.055))
@@ -68,6 +69,15 @@ function drawWoodenFrame(ctx: CanvasRenderingContext2D, imgW: number, imgH: numb
   ctx.strokeRect(frame + mat - 1, frame + mat - 1, imgW + 2, imgH + 2)
 }
 
+function canvasToWebp(canvas: HTMLCanvasElement): { image: string; mime: string } {
+  const webp = canvas.toDataURL('image/webp', WEBP_QUALITY)
+  if (webp.startsWith('data:image/webp')) {
+    return { image: webp, mime: 'image/webp' }
+  }
+  const jpeg = canvas.toDataURL('image/jpeg', WEBP_QUALITY)
+  return { image: jpeg, mime: 'image/jpeg' }
+}
+
 async function clientOptimize(file: File, category?: string): Promise<ProcessedPhoto> {
   const img = await createImageBitmap(file)
 
@@ -90,12 +100,12 @@ async function clientOptimize(file: File, category?: string): Promise<ProcessedP
   drawWoodenFrame(ctx, width, height, mat, frame)
   ctx.drawImage(img, offset, offset, width, height)
 
-  const image = canvas.toDataURL('image/jpeg', 0.82)
+  const { image, mime } = canvasToWebp(canvas)
   const sizeKb = Math.round((image.length * 0.75) / 1024)
 
   return {
     image,
-    mime: 'image/jpeg',
+    mime,
     width: totalW,
     height: totalH,
     sizeKb,

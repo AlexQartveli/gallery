@@ -64,7 +64,15 @@ $outW = imagesx($dst);
 $outH = imagesy($dst);
 
 ob_start();
-imagejpeg($dst, null, 82);
+if (function_exists('imagewebp')) {
+    imagewebp($dst, null, 82);
+    $mime = 'image/webp';
+    $dataPrefix = 'data:image/webp;base64,';
+} else {
+    imagejpeg($dst, null, 82);
+    $mime = 'image/jpeg';
+    $dataPrefix = 'data:image/jpeg;base64,';
+}
 $optimizedData = ob_get_clean();
 imagedestroy($dst);
 
@@ -72,15 +80,15 @@ $optimizedBase64 = base64_encode($optimizedData);
 $sizeKb = round(strlen($optimizedData) / 1024);
 
 $result = [
-    'image' => 'data:image/jpeg;base64,' . $optimizedBase64,
-    'mime' => 'image/jpeg',
+    'image' => $dataPrefix . $optimizedBase64,
+    'mime' => $mime,
     'width' => $outW,
     'height' => $outH,
     'sizeKb' => $sizeKb,
     'score' => 7,
     'ready' => true,
     'issues' => [],
-    'tips' => ['Фото сжато с сохранением пропорций и деревянной рамкой'],
+    'tips' => ['Фото сжато в WebP с сохранением пропорций и деревянной рамкой'],
     'seoTitle' => 'Авторская работа',
     'seoDescription' => 'Уникальное произведение искусства на Geo Gallery',
     'seoAlt' => 'Произведение искусства — Geo Gallery',

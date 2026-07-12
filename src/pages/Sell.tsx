@@ -176,7 +176,7 @@ export default function Sell() {
                   <div className="sell__upload-placeholder">
                     <span>📷</span>
                     <p>Загрузите фото работы</p>
-                    <small>JPEG, PNG до 15 МБ</small>
+                    <small>JPEG, PNG, WebP до 15 МБ</small>
                   </div>
                 )}
               </div>
