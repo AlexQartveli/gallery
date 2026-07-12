@@ -121,20 +121,67 @@ async function clientOptimize(file: File, category?: string): Promise<ProcessedP
 }
 
 export async function processPhoto(file: File, category?: string): Promise<ProcessedPhoto> {
-  const base64 = await fileToBase64(file)
+  const { result } = await processPhotoDetailed(file, category)
+  return result
+}
 
-  try {
-    const res = await fetch('/api/process-photo.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image: base64, category }),
-    })
-    if (!res.ok) throw new Error('API error')
-    const data = await res.json()
-    if (data.error) throw new Error(data.error)
-    return data as ProcessedPhoto
-  } catch {
-    return clientOptimize(file, category)
+export interface ProcessPhotoReport {
+  result: ProcessedPhoto
+  source: 'server' | 'client'
+  durationMs: number
+  original: {
+    name: string
+    bytes: number
+    type: string
+    width: number
+    height: number
+  }
+}
+
+export async function processPhotoDetailed(
+  file: File,
+  category?: string,
+  options?: { forceClient?: boolean },
+): Promise<ProcessPhotoReport> {
+  const img = await createImageBitmap(file)
+  const original = {
+    name: file.name,
+    bytes: file.size,
+    type: file.type,
+    width: img.width,
+    height: img.height,
+  }
+
+  const start = performance.now()
+
+  if (!options?.forceClient) {
+    const base64 = await fileToBase64(file)
+    try {
+      const res = await fetch('/api/process-photo.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: base64, category }),
+      })
+      if (!res.ok) throw new Error('API error')
+      const data = await res.json()
+      if (data.error) throw new Error(data.error)
+      return {
+        result: data as ProcessedPhoto,
+        source: 'server',
+        durationMs: Math.round(performance.now() - start),
+        original,
+      }
+    } catch {
+      // fallback to client
+    }
+  }
+
+  const result = await clientOptimize(file, category)
+  return {
+    result,
+    source: 'client',
+    durationMs: Math.round(performance.now() - start),
+    original,
   }
 }
 

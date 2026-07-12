@@ -12,6 +12,7 @@ import Sell from './pages/Sell'
 import PlacementCheckout from './pages/PlacementCheckout'
 import Promote from './pages/Promote'
 import PurchaseCheckout from './pages/PurchaseCheckout'
+import PhotoUploadTest from './pages/PhotoUploadTest'
 
 export default function App() {
   return (
@@ -29,6 +30,7 @@ export default function App() {
         <Route path="place-checkout" element={<PlacementCheckout />} />
         <Route path="promote/:id" element={<Promote />} />
         <Route path="checkout/:id" element={<PurchaseCheckout />} />
+        <Route path="test-upload" element={<PhotoUploadTest />} />
       </Route>
     </Routes>
   )
