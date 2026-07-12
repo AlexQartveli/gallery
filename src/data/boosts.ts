@@ -11,7 +11,7 @@ export const BOOST_PRODUCTS: BoostProduct[] = [
     features: [
       'Обрезка родной рамки с фото',
       'Деревянная рамка Geo Gallery',
-      'Сжатие до 800×1000 px',
+      'Выравнивание неровных/наклонных фото',
       'Конвертация в WebP',
     ],
     popular: true,
