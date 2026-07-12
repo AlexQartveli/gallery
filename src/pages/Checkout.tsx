@@ -43,7 +43,7 @@ export default function Checkout() {
             <h1>Оплата прошла успешно!</h1>
             <p>Заказ <strong>{orderId}</strong> оформлен.</p>
             <p className="checkout__success-desc">
-              ArtVault выкупит картину «{painting.title}» у художника {painting.artist} и отправит её по адресу:
+              Geo Gallery выкупит картину «{painting.title}» у художника {painting.artist} и отправит её по адресу:
               <br /><em>{form.address}</em>
             </p>
             <div className="checkout__success-actions">
@@ -102,7 +102,7 @@ export default function Checkout() {
               </div>
               <div className="checkout__flow-step">
                 <span>2</span>
-                <p>ArtVault выкупает у художника</p>
+                <p>Geo Gallery выкупает у художника</p>
               </div>
               <div className="checkout__flow-step">
                 <span>3</span>

@@ -78,7 +78,7 @@ export function generatePaintings(count: number): Painting[] {
       price,
       width,
       height,
-      imageUrl: `https://picsum.photos/seed/artvault${i + 1}/600/800`,
+      imageUrl: `https://picsum.photos/seed/geogallery${i + 1}/600/800`,
       status: seededRandom(seed + 500) > 0.92 ? 'sold' : 'available',
       createdAt: new Date(Date.now() - Math.floor(seededRandom(seed + 600) * 30) * 86400000).toISOString(),
     }

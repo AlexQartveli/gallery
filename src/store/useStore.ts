@@ -75,6 +75,6 @@ export const useStore = create<AppState>()(
 
       getPainting: (id) => get().paintings.find((p) => p.id === id),
     }),
-    { name: 'artvault-store' }
+    { name: 'geo-gallery-store' }
   )
 )
