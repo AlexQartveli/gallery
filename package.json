@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "deploy": "bash scripts/deploy.sh"
+    "deploy": "bash scripts/deploy.sh",
+    "pull:host": "bash scripts/pull-from-host.sh",
+    "setup": "bash scripts/local-setup.sh"
   },
   "dependencies": {
     "@react-three/drei": "^9.117.3",
