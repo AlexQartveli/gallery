@@ -2,7 +2,7 @@ import { useRef, useEffect, useMemo } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { input, consumeLookDelta, addLookDelta } from '../../gallery/input'
-import { useArtworkTexture } from '../../lib/artworkTexture'
+import { useArtworkTexture, getWatermarkOverlayTexture } from '../../lib/artworkTexture'
 import type { Artwork, CategoryId } from '../../types'
 import { isBoostActive } from '../../data/boosts'
 
@@ -213,6 +213,7 @@ function WallArt({
   selected: boolean
 }) {
   const { texture, failed, fallbackColor } = useArtworkTexture(artwork.imageUrl, artwork.id)
+  const watermark = useMemo(() => getWatermarkOverlayTexture(), [])
   const aspect = artwork.width / artwork.height
   const h = 1.55
   const w = Math.min(h * aspect, 2.3)
@@ -268,15 +269,37 @@ function WallArt({
       {/* Canvas */}
       <mesh position={[0, 0, 0.015]} userData={{ artwork }}>
         <planeGeometry args={[w, h]} />
-        <meshBasicMaterial
-          map={texture ?? undefined}
-          color={texture ? '#ffffff' : fallbackColor}
-          side={THREE.DoubleSide}
-          toneMapped={false}
-          transparent={failed}
-          opacity={failed ? 0.92 : 1}
-        />
+        {texture ? (
+          <meshBasicMaterial
+            key={texture.uuid}
+            map={texture}
+            side={THREE.DoubleSide}
+            toneMapped={false}
+          />
+        ) : (
+          <meshBasicMaterial
+            color={fallbackColor}
+            side={THREE.DoubleSide}
+            toneMapped={false}
+            transparent={failed}
+            opacity={failed ? 0.92 : 1}
+          />
+        )}
       </mesh>
+
+      {texture && (
+        <mesh position={[0, 0, 0.022]}>
+          <planeGeometry args={[w, h]} />
+          <meshBasicMaterial
+            map={watermark}
+            transparent
+            opacity={0.42}
+            depthWrite={false}
+            side={THREE.DoubleSide}
+            toneMapped={false}
+          />
+        </mesh>
+      )}
 
       {/* Plaque */}
       <mesh position={[0, -h / 2 - 0.28, 0.02]}>

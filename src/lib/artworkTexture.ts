@@ -3,6 +3,7 @@ import * as THREE from 'three'
 import { drawWatermark } from './watermark'
 
 const textureCache = new Map<string, Promise<THREE.Texture>>()
+let watermarkOverlay: THREE.CanvasTexture | null = null
 
 function placeholderColor(id: string): string {
   let hash = 0
@@ -13,6 +14,26 @@ function placeholderColor(id: string): string {
   return `hsl(${hue} 32% 42%)`
 }
 
+export function getWatermarkOverlayTexture(): THREE.CanvasTexture {
+  if (watermarkOverlay) return watermarkOverlay
+
+  const canvas = document.createElement('canvas')
+  canvas.width = 320
+  canvas.height = 160
+  drawWatermark(canvas.getContext('2d')!, canvas.width, canvas.height)
+
+  watermarkOverlay = new THREE.CanvasTexture(canvas)
+  watermarkOverlay.colorSpace = THREE.SRGBColorSpace
+  watermarkOverlay.wrapS = THREE.RepeatWrapping
+  watermarkOverlay.wrapT = THREE.RepeatWrapping
+  watermarkOverlay.repeat.set(1.6, 2.4)
+  watermarkOverlay.minFilter = THREE.LinearFilter
+  watermarkOverlay.magFilter = THREE.LinearFilter
+  watermarkOverlay.generateMipmaps = false
+  watermarkOverlay.needsUpdate = true
+  return watermarkOverlay
+}
+
 async function loadArtworkTexture(url: string): Promise<THREE.Texture> {
   const response = await fetch(url, { mode: 'cors', credentials: 'omit' })
   if (!response.ok) {
@@ -20,25 +41,16 @@ async function loadArtworkTexture(url: string): Promise<THREE.Texture> {
   }
 
   const blob = await response.blob()
-  const objectUrl = URL.createObjectURL(blob)
+  const bitmap = await createImageBitmap(blob)
 
   try {
-    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const img = new Image()
-      img.crossOrigin = 'anonymous'
-      img.onload = () => resolve(img)
-      img.onerror = () => reject(new Error('Texture decode failed'))
-      img.src = objectUrl
-    })
+    const width = bitmap.width
+    const height = bitmap.height
+    if (!width || !height) {
+      throw new Error('Texture decode failed: empty image')
+    }
 
-    const canvas = document.createElement('canvas')
-    canvas.width = image.naturalWidth
-    canvas.height = image.naturalHeight
-    const ctx = canvas.getContext('2d')!
-    ctx.drawImage(image, 0, 0)
-    drawWatermark(ctx, canvas.width, canvas.height)
-
-    const texture = new THREE.CanvasTexture(canvas)
+    const texture = new THREE.Texture(bitmap)
     texture.colorSpace = THREE.SRGBColorSpace
     texture.minFilter = THREE.LinearFilter
     texture.magFilter = THREE.LinearFilter
@@ -46,7 +58,8 @@ async function loadArtworkTexture(url: string): Promise<THREE.Texture> {
     texture.needsUpdate = true
     return texture
   } finally {
-    URL.revokeObjectURL(objectUrl)
+    // ImageBitmap is copied into the GPU texture; release memory.
+    bitmap.close()
   }
 }
 
