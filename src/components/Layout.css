@@ -2,7 +2,9 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  overflow-x: clip;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .layout--gallery .header {
@@ -161,13 +163,11 @@
   position: fixed;
   inset: 0;
   z-index: 200;
-  pointer-events: none;
-  visibility: hidden;
+  display: none;
 }
 
 .mobile-menu--open {
-  pointer-events: auto;
-  visibility: visible;
+  display: block;
 }
 
 .mobile-menu__backdrop {

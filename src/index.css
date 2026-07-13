@@ -24,7 +24,6 @@
 html {
   font-size: 16px;
   -webkit-font-smoothing: antialiased;
-  overflow-x: clip;
 }
 
 body {
@@ -33,7 +32,9 @@ body {
   color: var(--text);
   min-height: 100vh;
   line-height: 1.5;
-  overflow-x: clip;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 a {

@@ -84,7 +84,8 @@ export default function Layout() {
           </button>
         </div>
       </header>
-      <div className={`mobile-menu ${menuOpen ? 'mobile-menu--open' : ''}`} aria-hidden={!menuOpen}>
+      {menuOpen && (
+      <div className="mobile-menu mobile-menu--open" aria-hidden={false}>
         <button
           type="button"
           className="mobile-menu__backdrop"
@@ -147,6 +148,7 @@ export default function Layout() {
           </div>
         </aside>
       </div>
+      )}
       <main className="main">
         <Outlet />
       </main>
