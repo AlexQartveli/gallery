@@ -15,15 +15,17 @@ function WallMoldings({ spec }: { spec: RoomThemeSpec }) {
         return (
           <group key={i} position={[0, h * 0.55, z]}>
             {[-hw, hw].map((x) => (
-              <mesh key={x} position={[x, 0, 0]} rotation={[0, x < 0 ? Math.PI / 2 : -Math.PI / 2, 0]}>
-                <boxGeometry args={[step * 0.82, h * 0.42, 0.06]} />
-                <meshStandardMaterial color={spec.wallAccent} roughness={0.85} />
-              </mesh>
+              <group key={x}>
+                <mesh position={[x, 0, 0]} rotation={[0, x < 0 ? Math.PI / 2 : -Math.PI / 2, 0]}>
+                  <boxGeometry args={[step * 0.82, h * 0.42, 0.06]} />
+                  <meshStandardMaterial color={spec.wallAccent} roughness={0.85} />
+                </mesh>
+                <mesh position={[x, -h * 0.18, 0]} rotation={[0, x < 0 ? Math.PI / 2 : -Math.PI / 2, 0]}>
+                  <boxGeometry args={[step * 0.82, 0.08, 0.04]} />
+                  <meshStandardMaterial color={spec.trim} roughness={0.3} metalness={0.65} />
+                </mesh>
+              </group>
             ))}
-            <mesh position={[0, -h * 0.18, 0]}>
-              <boxGeometry args={[w * 0.88, 0.08, 0.04]} />
-              <meshStandardMaterial color={spec.trim} roughness={0.3} metalness={0.65} />
-            </mesh>
           </group>
         )
       })}

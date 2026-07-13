@@ -1,4 +1,4 @@
-import { detectBackgroundBounds, detectPaintingBounds } from '../src/lib/segment'
+import { detectBackgroundBounds, detectPaintingBounds, segmentArtworkBounds } from '../src/lib/segment'
 
 const width = 900
 const height = 1200
@@ -72,6 +72,25 @@ for (let y = 130; y < 390; y++) {
 const topOuter = detectBackgroundBounds(topPixels, width, height)
 if (topOuter.bottom > 520) {
   throw new Error(`top frame crop failed: bottom=${topOuter.bottom}`)
+}
+
+const ornate = new Uint8ClampedArray(width * height * 4)
+fill(ornate, 0, 0, width, height, [245, 240, 232])
+fill(ornate, 90, 180, 810, 820, [110, 68, 38])
+fill(ornate, 120, 210, 780, 790, [248, 244, 236])
+for (let y = 260; y < 740; y++) {
+  for (let x = 180; x < 720; x++) {
+    const i = (y * width + x) * 4
+    ornate[i] = 40 + ((x * 5 + y * 2) % 200)
+    ornate[i + 1] = 110 + ((x * 2 + y * 4) % 120)
+    ornate[i + 2] = 20 + ((x * 3 + y * 6) % 90)
+  }
+}
+
+const ornateOuter = detectBackgroundBounds(ornate, width, height)
+const ornateSegment = segmentArtworkBounds(ornate, width, height)
+if (ornateSegment.top > 280 || ornateSegment.bottom < 700 || ornateSegment.left > 200 || ornateSegment.right < 700) {
+  throw new Error(`ornate mat/frame crop too loose: ${JSON.stringify(ornateSegment)}`)
 }
 
 console.log('segment smoke ok')

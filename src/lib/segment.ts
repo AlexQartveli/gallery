@@ -275,7 +275,155 @@ function verticalContourScore(
 function isMatLike(c: Rgb): boolean {
   const max = Math.max(c.r, c.g, c.b)
   const min = Math.min(c.r, c.g, c.b)
-  return c.r > 178 && c.g > 170 && c.b > 145 && max - min < 62
+  return c.r > 168 && c.g > 160 && c.b > 135 && max - min < 72
+}
+
+function isNearWhite(c: Rgb): boolean {
+  return c.r > 232 && c.g > 228 && c.b > 218
+}
+
+function isWoodLike(c: Rgb): boolean {
+  return c.r > 70 && c.g > 45 && c.b < 110 && c.r > c.b + 12 && c.r - c.g < 55
+}
+
+function luminance(c: Rgb): number {
+  return 0.299 * c.r + 0.587 * c.g + 0.114 * c.b
+}
+
+function rowStats(data: Uint8ClampedArray, w: number, y: number, x0: number, x1: number) {
+  const lums: number[] = []
+  let matCount = 0
+  let woodCount = 0
+  let n = 0
+
+  for (let x = x0; x < x1; x += 2) {
+    const c = sampleRgb(data, w, x, y)
+    lums.push(luminance(c))
+    if (isMatLike(c) || isNearWhite(c)) matCount++
+    if (isWoodLike(c)) woodCount++
+    n++
+  }
+
+  const mean = lums.reduce((sum, value) => sum + value, 0) / Math.max(1, lums.length)
+  const variance = lums.reduce((sum, value) => sum + (value - mean) ** 2, 0) / Math.max(1, lums.length)
+
+  return {
+    matRatio: matCount / Math.max(1, n),
+    woodRatio: woodCount / Math.max(1, n),
+    variance,
+  }
+}
+
+function colStats(data: Uint8ClampedArray, w: number, x: number, y0: number, y1: number) {
+  const lums: number[] = []
+  let matCount = 0
+  let woodCount = 0
+  let n = 0
+
+  for (let y = y0; y < y1; y += 2) {
+    const c = sampleRgb(data, w, x, y)
+    lums.push(luminance(c))
+    if (isMatLike(c) || isNearWhite(c)) matCount++
+    if (isWoodLike(c)) woodCount++
+    n++
+  }
+
+  const mean = lums.reduce((sum, value) => sum + value, 0) / Math.max(1, lums.length)
+  const variance = lums.reduce((sum, value) => sum + (value - mean) ** 2, 0) / Math.max(1, lums.length)
+
+  return {
+    matRatio: matCount / Math.max(1, n),
+    woodRatio: woodCount / Math.max(1, n),
+    variance,
+  }
+}
+
+function isMarginRow(data: Uint8ClampedArray, w: number, y: number, x0: number, x1: number): boolean {
+  const stats = rowStats(data, w, y, x0, x1)
+  return stats.matRatio > 0.58 || stats.woodRatio > 0.5 || stats.variance < 22
+}
+
+function isMarginCol(data: Uint8ClampedArray, w: number, x: number, y0: number, y1: number): boolean {
+  const stats = colStats(data, w, x, y0, y1)
+  return stats.matRatio > 0.58 || stats.woodRatio > 0.5 || stats.variance < 22
+}
+
+export function detectContentBounds(
+  data: Uint8ClampedArray,
+  w: number,
+  _h: number,
+  outer: Bounds,
+): Bounds {
+  const x0 = outer.left
+  const x1 = outer.right
+  const y0 = outer.top
+  const y1 = outer.bottom
+
+  let top = y0
+  for (let y = y0; y < y1; y++) {
+    if (!isMarginRow(data, w, y, x0, x1)) {
+      top = y
+      break
+    }
+  }
+
+  let bottom = y1
+  for (let y = y1 - 1; y >= top; y--) {
+    if (!isMarginRow(data, w, y, x0, x1)) {
+      bottom = y + 1
+      break
+    }
+  }
+
+  let left = x0
+  for (let x = x0; x < x1; x++) {
+    if (!isMarginCol(data, w, x, top, bottom)) {
+      left = x
+      break
+    }
+  }
+
+  let right = x1
+  for (let x = x1 - 1; x >= left; x--) {
+    if (!isMarginCol(data, w, x, top, bottom)) {
+      right = x + 1
+      break
+    }
+  }
+
+  const outerW = outer.right - outer.left
+  const outerH = outer.bottom - outer.top
+  const contentW = right - left
+  const contentH = bottom - top
+
+  if (contentW < outerW * 0.28 || contentH < outerH * 0.28) {
+    return outer
+  }
+
+  const pad = Math.max(1, Math.round(Math.min(contentW, contentH) * 0.004))
+  return {
+    top: Math.max(outer.top, top - pad),
+    bottom: Math.min(outer.bottom, bottom + pad),
+    left: Math.max(outer.left, left - pad),
+    right: Math.min(outer.right, right + pad),
+  }
+}
+
+function tightenBounds(...candidates: Bounds[]): Bounds {
+  if (candidates.length === 0) {
+    return { top: 0, bottom: 0, left: 0, right: 0 }
+  }
+
+  const top = Math.max(...candidates.map((b) => b.top))
+  const left = Math.max(...candidates.map((b) => b.left))
+  const bottom = Math.min(...candidates.map((b) => b.bottom))
+  const right = Math.min(...candidates.map((b) => b.right))
+
+  if (right <= left || bottom <= top) {
+    return candidates[0]
+  }
+
+  return { top, bottom, left, right }
 }
 
 function horizontalMatRatio(data: Uint8ClampedArray, w: number, y: number, x0: number, x1: number): number {
@@ -449,9 +597,15 @@ export function detectPaintingBounds(data: Uint8ClampedArray, w: number, h: numb
   let left = horizontal.start
   let right = horizontal.end
 
-  const minW = outerW * 0.48
-  const minH = outerH * 0.48
-  if (right - left < minW || bottom - top < minH) return outer
+  const minW = outerW * 0.3
+  const minH = outerH * 0.3
+  if (right - left < minW || bottom - top < minH) {
+    const content = detectContentBounds(data, w, h, outer)
+    if (boundsArea(content) >= outerW * outerH * 0.12) {
+      return content
+    }
+    return outer
+  }
 
   // Keep a tiny safety margin outside the detected canvas. It is preferable
   // to retain one edge pixel from the old mat than to lose painted content.
@@ -462,7 +616,17 @@ export function detectPaintingBounds(data: Uint8ClampedArray, w: number, h: numb
   right = Math.min(outer.right, right + safety)
 
   if (right <= left || bottom <= top || w < 1 || h < 1) return outer
-  return { top, bottom, left, right }
+
+  const framed = { top, bottom, left, right }
+  const content = detectContentBounds(data, w, h, framed)
+  return tightenBounds(framed, content)
+}
+
+export function segmentArtworkBounds(data: Uint8ClampedArray, w: number, h: number): Bounds {
+  const outer = detectBackgroundBounds(data, w, h)
+  const painting = detectPaintingBounds(data, w, h, outer)
+  const trimmed = trimUniformMargins(data, w, h)
+  return tightenBounds(painting, trimmed)
 }
 
 export function boundsToCrop(bounds: Bounds, imgW: number, imgH: number, scale: number): {

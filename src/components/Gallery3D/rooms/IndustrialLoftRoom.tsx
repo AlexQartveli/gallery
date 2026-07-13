@@ -58,20 +58,25 @@ function ExposedPipes({ spec }: { spec: RoomThemeSpec }) {
       ))}
       {Array.from({ length: 7 }, (_, i) => {
         const z = -d / 2 + 4 + i * 7.4
+        const hw = w / 2 - 0.35
         return (
-          <group key={i} position={[0, h - 0.35, z]}>
-            <mesh>
-              <boxGeometry args={[w * 0.7, 0.05, 0.08]} />
-              <meshStandardMaterial color={spec.trim} metalness={0.85} roughness={0.2} />
-            </mesh>
-            <spotLight
-              position={[0, -0.15, 0]}
-              angle={0.32}
-              penumbra={0.4}
-              intensity={spec.spotIntensity}
-              distance={8}
-              color={spec.spotColor}
-            />
+          <group key={i}>
+            {[-hw, hw].map((x) => (
+              <group key={x} position={[x, h - 0.35, z]}>
+                <mesh rotation={[0, x < 0 ? Math.PI / 2 : -Math.PI / 2, 0]}>
+                  <boxGeometry args={[1.4, 0.05, 0.08]} />
+                  <meshStandardMaterial color={spec.trim} metalness={0.85} roughness={0.2} />
+                </mesh>
+                <spotLight
+                  position={[x < 0 ? 0.35 : -0.35, -0.15, 0]}
+                  angle={0.32}
+                  penumbra={0.4}
+                  intensity={spec.spotIntensity}
+                  distance={8}
+                  color={spec.spotColor}
+                />
+              </group>
+            ))}
           </group>
         )
       })}

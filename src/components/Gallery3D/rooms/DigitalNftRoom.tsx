@@ -29,26 +29,31 @@ function CarbonPanels({ spec }: { spec: RoomThemeSpec }) {
 
 function NeonGridLines({ spec }: { spec: RoomThemeSpec }) {
   const { w, d, h } = CORRIDOR
+  const hw = w / 2 - 0.16
   const cyan = spec.accent
   const purple = spec.neonAccent ?? '#9b5cff'
   const lines = []
 
   for (let z = -d / 2 + 2; z < d / 2; z += 5.5) {
-    lines.push(
-      <mesh key={`h-${z}`} position={[0, h * 0.15, z]}>
-        <boxGeometry args={[w * 0.86, 0.02, 0.02]} />
-        <meshStandardMaterial color={cyan} emissive={cyan} emissiveIntensity={1.1} />
-      </mesh>
-    )
+    for (const x of [-hw, hw]) {
+      lines.push(
+        <mesh key={`h-${x}-${z}`} position={[x, h * 0.15, z]} rotation={[0, x < 0 ? Math.PI / 2 : -Math.PI / 2, 0]}>
+          <boxGeometry args={[4.8, 0.02, 0.02]} />
+          <meshStandardMaterial color={cyan} emissive={cyan} emissiveIntensity={1.1} />
+        </mesh>
+      )
+    }
   }
 
   for (let y = 0.4; y < h; y += 1.1) {
-    lines.push(
-      <mesh key={`v-${y}`} position={[0, y, 0]}>
-        <boxGeometry args={[0.02, 0.02, d * 0.9]} />
-        <meshStandardMaterial color={purple} emissive={purple} emissiveIntensity={0.9} />
-      </mesh>
-    )
+    for (const x of [-hw, hw]) {
+      lines.push(
+        <mesh key={`v-${x}-${y}`} position={[x, y, 0]} rotation={[0, x < 0 ? Math.PI / 2 : -Math.PI / 2, 0]}>
+          <boxGeometry args={[0.02, 0.02, d * 0.9]} />
+          <meshStandardMaterial color={purple} emissive={purple} emissiveIntensity={0.9} />
+        </mesh>
+      )
+    }
   }
 
   return <group>{lines}</group>

@@ -8,9 +8,8 @@ import {
 } from './perspective'
 import {
   boundsToCrop,
-  detectBackgroundBounds,
-  detectPaintingBounds,
-  trimUniformMargins,
+  segmentArtworkBounds,
+  type Bounds,
 } from './segment'
 import { drawArtworkWatermark } from './watermark'
 
@@ -68,9 +67,20 @@ function createAnalysis(img: ImageBitmap) {
   return { data, w, h, scale }
 }
 
-function segmentPaintingBounds(data: Uint8ClampedArray, w: number, h: number) {
-  const outer = detectBackgroundBounds(data, w, h)
-  return detectPaintingBounds(data, w, h, outer)
+function segmentPaintingBounds(data: Uint8ClampedArray, w: number, h: number): Bounds {
+  return segmentArtworkBounds(data, w, h)
+}
+
+function boundsChanged(a: Bounds, b: Bounds): boolean {
+  const areaA = (a.right - a.left) * (a.bottom - a.top)
+  const areaB = (b.right - b.left) * (b.bottom - b.top)
+  return (
+    Math.abs(a.top - b.top) > 2 ||
+    Math.abs(a.left - b.left) > 2 ||
+    Math.abs(a.right - b.right) > 2 ||
+    Math.abs(a.bottom - b.bottom) > 2 ||
+    areaB < areaA * 0.985
+  )
 }
 
 function cropCanvas(src: HTMLCanvasElement, sx: number, sy: number, sw: number, sh: number): HTMLCanvasElement {
@@ -82,37 +92,37 @@ function cropCanvas(src: HTMLCanvasElement, sx: number, sy: number, sw: number, 
   return out
 }
 
-function refineCanvas(canvas: HTMLCanvasElement): HTMLCanvasElement {
+function applyBounds(canvas: HTMLCanvasElement, bounds: Bounds): HTMLCanvasElement {
   const w = canvas.width
   const h = canvas.height
-  const ctx = canvas.getContext('2d')!
-  const data = ctx.getImageData(0, 0, w, h).data
-
-  const segmentBounds = segmentPaintingBounds(data, w, h)
-  let bounds = segmentBounds
-
-  const trimmed = trimUniformMargins(data, w, h)
-  const trimmedArea = (trimmed.right - trimmed.left) * (trimmed.bottom - trimmed.top)
-  const segmentArea = (segmentBounds.right - segmentBounds.left) * (segmentBounds.bottom - segmentBounds.top)
-  if (trimmedArea > 0 && trimmedArea <= segmentArea * 0.98) {
-    bounds = {
-      top: Math.max(segmentBounds.top, trimmed.top),
-      bottom: Math.min(segmentBounds.bottom, trimmed.bottom),
-      left: Math.max(segmentBounds.left, trimmed.left),
-      right: Math.min(segmentBounds.right, trimmed.right),
-    }
-  }
-
-  if (
-    bounds.top <= 2 &&
-    bounds.left <= 2 &&
-    bounds.right >= w - 2 &&
-    bounds.bottom >= h - 2
-  ) {
+  if (bounds.top <= 1 && bounds.left <= 1 && bounds.right >= w - 1 && bounds.bottom >= h - 1) {
     return canvas
   }
-
   return cropCanvas(canvas, bounds.left, bounds.top, bounds.right - bounds.left, bounds.bottom - bounds.top)
+}
+
+function refineCanvas(canvas: HTMLCanvasElement): HTMLCanvasElement {
+  let current = canvas
+
+  for (let pass = 0; pass < 3; pass++) {
+    const w = current.width
+    const h = current.height
+    const ctx = current.getContext('2d')!
+    const data = ctx.getImageData(0, 0, w, h).data
+    const bounds = segmentArtworkBounds(data, w, h)
+
+    if (!boundsChanged({ top: 0, bottom: h, left: 0, right: w }, bounds)) {
+      break
+    }
+
+    const next = applyBounds(current, bounds)
+    if (next.width === current.width && next.height === current.height) {
+      break
+    }
+    current = next
+  }
+
+  return current
 }
 
 function detectNativeFrameCrop(img: ImageBitmap): CropRect {
