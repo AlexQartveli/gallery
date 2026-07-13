@@ -151,6 +151,56 @@ function verticalContourScore(
   return percentile(values, 0.42) + percentile(values, 0.72) * 0.35 + strongShare * 12
 }
 
+function isMatLike(c: Rgb): boolean {
+  const max = Math.max(c.r, c.g, c.b)
+  const min = Math.min(c.r, c.g, c.b)
+  return c.r > 178 && c.g > 170 && c.b > 145 && max - min < 62
+}
+
+function horizontalMatRatio(data: Uint8ClampedArray, w: number, y: number, x0: number, x1: number): number {
+  let count = 0
+  let total = 0
+  for (let x = x0; x < x1; x += 2) {
+    if (isMatLike(sampleRgb(data, w, x, y))) count++
+    total++
+  }
+  return total ? count / total : 0
+}
+
+function verticalMatRatio(data: Uint8ClampedArray, w: number, x: number, y0: number, y1: number): number {
+  let count = 0
+  let total = 0
+  for (let y = y0; y < y1; y += 2) {
+    if (isMatLike(sampleRgb(data, w, x, y))) count++
+    total++
+  }
+  return total ? count / total : 0
+}
+
+function findMatInnerEdge(
+  positions: number[],
+  ratioAt: (position: number) => number,
+): number | null {
+  let seenMat = false
+  let lowStreak = 0
+
+  for (const position of positions) {
+    const ratio = ratioAt(position)
+    if (ratio > 0.48) {
+      seenMat = true
+      lowStreak = 0
+      continue
+    }
+    if (seenMat && ratio < 0.24) {
+      lowStreak++
+      if (lowStreak >= 2) return position
+    } else {
+      lowStreak = 0
+    }
+  }
+  return null
+}
+
 interface ContourCandidate {
   pos: number
   score: number
@@ -254,8 +304,24 @@ export function detectPaintingBounds(data: Uint8ClampedArray, w: number, h: numb
     rightProfile.push({ pos: x, score: verticalContourScore(data, w, x, y0, y1) })
   }
 
-  const vertical = choosePairedContours(topProfile, bottomProfile, outer.top, outer.bottom)
-  const horizontal = choosePairedContours(leftProfile, rightProfile, outer.left, outer.right)
+  const topPositions = topProfile.map((item) => item.pos)
+  const bottomPositions = [...bottomProfile].reverse().map((item) => item.pos)
+  const leftPositions = leftProfile.map((item) => item.pos)
+  const rightPositions = [...rightProfile].reverse().map((item) => item.pos)
+
+  const matTop = findMatInnerEdge(topPositions, (y) => horizontalMatRatio(data, w, y, x0, x1))
+  const matBottom = findMatInnerEdge(bottomPositions, (y) => horizontalMatRatio(data, w, y, x0, x1))
+  const matLeft = findMatInnerEdge(leftPositions, (x) => verticalMatRatio(data, w, x, y0, y1))
+  const matRight = findMatInnerEdge(rightPositions, (x) => verticalMatRatio(data, w, x, y0, y1))
+
+  const vertical =
+    matTop != null && matBottom != null
+      ? { start: matTop, end: matBottom }
+      : choosePairedContours(topProfile, bottomProfile, outer.top, outer.bottom)
+  const horizontal =
+    matLeft != null && matRight != null
+      ? { start: matLeft, end: matRight }
+      : choosePairedContours(leftProfile, rightProfile, outer.left, outer.right)
 
   let top = vertical.start
   let bottom = vertical.end
