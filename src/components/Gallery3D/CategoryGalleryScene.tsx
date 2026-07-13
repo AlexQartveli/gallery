@@ -1,7 +1,8 @@
-import { useRef, useEffect, useMemo, useState } from 'react'
+import { useRef, useEffect, useMemo } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { input, consumeLookDelta, addLookDelta } from '../../gallery/input'
+import { useArtworkTexture } from '../../lib/artworkTexture'
 import type { Artwork, CategoryId } from '../../types'
 import { isBoostActive } from '../../data/boosts'
 
@@ -198,39 +199,6 @@ function Room({ theme }: { theme: Theme }) {
   )
 }
 
-function useArtworkTexture(url: string) {
-  const [texture, setTexture] = useState<THREE.Texture | null>(null)
-
-  useEffect(() => {
-    let active = true
-    const loader = new THREE.TextureLoader()
-    loader.setCrossOrigin('anonymous')
-    loader.load(
-      url,
-      (loaded) => {
-        if (!active) {
-          loaded.dispose()
-          return
-        }
-        loaded.colorSpace = THREE.SRGBColorSpace
-        setTexture(loaded)
-      },
-      undefined,
-      () => {
-        if (active) setTexture(null)
-      }
-    )
-
-    return () => {
-      active = false
-    }
-  }, [url])
-
-  useEffect(() => () => texture?.dispose(), [texture])
-
-  return texture
-}
-
 function WallArt({
   artwork,
   position,
@@ -244,7 +212,7 @@ function WallArt({
   theme: Theme
   selected: boolean
 }) {
-  const texture = useArtworkTexture(artwork.imageUrl)
+  const { texture, failed, fallbackColor } = useArtworkTexture(artwork.imageUrl, artwork.id)
   const aspect = artwork.width / artwork.height
   const h = 1.55
   const w = Math.min(h * aspect, 2.3)
@@ -293,14 +261,21 @@ function WallArt({
 
       {/* Mat */}
       <mesh position={[0, 0, -0.01]}>
-        <boxGeometry args={[w + 0.08, h + 0.08, 0.02]} />
-        <meshStandardMaterial color="#f3efe8" roughness={0.95} />
+        <boxGeometry args={[w + 0.06, h + 0.06, 0.02]} />
+        <meshStandardMaterial color="#ddd4c8" roughness={0.95} />
       </mesh>
 
       {/* Canvas */}
       <mesh position={[0, 0, 0.015]} userData={{ artwork }}>
         <planeGeometry args={[w, h]} />
-        <meshBasicMaterial map={texture ?? undefined} color={texture ? '#ffffff' : '#4a4038'} />
+        <meshBasicMaterial
+          map={texture ?? undefined}
+          color={texture ? '#ffffff' : fallbackColor}
+          side={THREE.DoubleSide}
+          toneMapped={false}
+          transparent={failed}
+          opacity={failed ? 0.92 : 1}
+        />
       </mesh>
 
       {/* Plaque */}
