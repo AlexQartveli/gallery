@@ -18,20 +18,15 @@
 }
 
 .artwork-card__image-wrap {
-  position: relative;
   aspect-ratio: 4 / 5;
-  overflow: hidden;
   background: var(--bg);
 }
 
-.artwork-card__image-wrap img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.artwork-card__image-wrap > img {
   transition: transform 0.35s ease;
 }
 
-.artwork-card:hover .artwork-card__image-wrap img {
+.artwork-card:hover .artwork-card__image-wrap > img {
   transform: scale(1.05);
 }
 

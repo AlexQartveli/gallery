@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { useStore } from '../store/useStore'
 import { getTariff } from '../data/tariffs'
+import Logo from './Logo'
 import './Layout.css'
 
 const NAV = [
@@ -46,9 +47,8 @@ export default function Layout() {
     <div className={`layout ${isGallery ? 'layout--gallery' : ''}`}>
       <header className="header">
         <div className="container header__inner">
-          <Link to="/" className="logo">
-            <span className="logo__mark">◆</span>
-            <span className="logo__text">Geo Gallery</span>
+          <Link to="/" className="logo" aria-label="Geo Gallery — на главную">
+            <Logo />
           </Link>
           <nav className="nav">
             {NAV.map((item) => (
@@ -101,9 +101,8 @@ export default function Layout() {
           aria-label="Навигация"
         >
           <div className="mobile-menu__head">
-            <Link to="/" className="mobile-menu__brand">
-              <span className="logo__mark">◆</span>
-              <span>Geo Gallery</span>
+            <Link to="/" className="mobile-menu__brand" aria-label="Geo Gallery — на главную">
+              <Logo />
             </Link>
             <button
               type="button"
@@ -144,7 +143,7 @@ export default function Layout() {
 
           <div className="mobile-menu__footer">
             <span>Искусство рядом с вами</span>
-            <span className="mobile-menu__diamond">◆</span>
+            <Logo variant="icon" />
           </div>
         </aside>
       </div>
@@ -155,8 +154,12 @@ export default function Layout() {
       {!isGallery && (
         <footer className="footer">
           <div className="container footer__inner">
+            <Link to="/" className="footer__logo" aria-label="Geo Gallery — на главную">
+              <Logo />
+            </Link>
             <p>© 2026 Geo Gallery — маркетплейс искусства с онлайн-галереями</p>
             <p className="footer__note">Размещение платное · Geo Gallery выкупает работы и доставляет покупателям</p>
+            <a href="https://geogallery.online" className="footer__domain">geogallery.online</a>
           </div>
         </footer>
       )}

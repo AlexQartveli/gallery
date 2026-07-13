@@ -4,6 +4,7 @@ import { useStore } from '../store/useStore'
 import { getCategory } from '../data/categories'
 import { formatPrice } from '../data/tariffs'
 import { isBoostActive } from '../data/boosts'
+import ArtworkMedia from './ArtworkMedia'
 import type { Artwork } from '../types'
 import './ArtworkCard.css'
 
@@ -34,8 +35,12 @@ export default function ArtworkCard({ artwork, compact }: ArtworkCardProps) {
 
   return (
     <Link to={`/artwork/${artwork.id}`} className={`artwork-card card ${compact ? 'artwork-card--compact' : ''} ${isSold ? 'artwork-card--sold' : ''}`}>
-      <div className="artwork-card__image-wrap">
-        <img src={artwork.imageUrl} alt={artwork.seoAlt || artwork.title} loading="lazy" />
+      <ArtworkMedia
+        wrapClassName="artwork-card__image-wrap"
+        src={artwork.imageUrl}
+        alt={artwork.seoAlt || artwork.title}
+        loading="lazy"
+      >
         {isSold && <div className="artwork-card__sold-overlay">Продано</div>}
 
         <div className="artwork-card__badges">
@@ -48,7 +53,7 @@ export default function ArtworkCard({ artwork, compact }: ArtworkCardProps) {
         </div>
 
         {!isSold && <span className="badge badge-available artwork-card__status">В продаже</span>}
-      </div>
+      </ArtworkMedia>
 
       <div className="artwork-card__body">
         <div className="artwork-card__top">

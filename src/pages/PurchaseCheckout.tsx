@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useStore } from '../store/useStore'
 import { formatPrice } from '../data/tariffs'
+import ArtworkMedia from '../components/ArtworkMedia'
 import './PurchaseCheckout.css'
 
 export default function PurchaseCheckout() {
@@ -76,7 +77,7 @@ export default function PurchaseCheckout() {
             <p className="purchase-checkout__note">Демо-режим</p>
           </form>
           <div className="purchase-checkout__summary card">
-            <img src={artwork.imageUrl} alt={artwork.title} />
+            <ArtworkMedia wrapClassName="purchase-checkout__media" src={artwork.imageUrl} alt={artwork.title} />
             <h3>{artwork.title}</h3>
             {artist && <p>{artist.name}</p>}
             <p className="purchase-checkout__price">{formatPrice(artwork.price)}</p>

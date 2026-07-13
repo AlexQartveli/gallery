@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import * as THREE from 'three'
+import { drawWatermark } from './watermark'
 
 const textureCache = new Map<string, Promise<THREE.Texture>>()
 
@@ -30,7 +31,14 @@ async function loadArtworkTexture(url: string): Promise<THREE.Texture> {
       img.src = objectUrl
     })
 
-    const texture = new THREE.Texture(image)
+    const canvas = document.createElement('canvas')
+    canvas.width = image.naturalWidth
+    canvas.height = image.naturalHeight
+    const ctx = canvas.getContext('2d')!
+    ctx.drawImage(image, 0, 0)
+    drawWatermark(ctx, canvas.width, canvas.height)
+
+    const texture = new THREE.CanvasTexture(canvas)
     texture.colorSpace = THREE.SRGBColorSpace
     texture.minFilter = THREE.LinearFilter
     texture.magFilter = THREE.LinearFilter

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { formatPrice } from '../data/tariffs'
+import ArtworkMedia from '../components/ArtworkMedia'
 import type { Artwork } from '../types'
 import './GalleryFallback.css'
 
@@ -24,7 +25,7 @@ export default function GalleryFallback({ categoryName, categoryIcon, artworks }
         <div className="gallery-fallback__grid">
           {artworks.map((artwork) => (
             <Link key={artwork.id} to={`/artwork/${artwork.id}`} className="gallery-fallback__card card">
-              <img src={artwork.imageUrl} alt={artwork.title} loading="lazy" />
+              <ArtworkMedia wrapClassName="gallery-fallback__media" src={artwork.imageUrl} alt={artwork.title} loading="lazy" />
               <div>
                 <h3>{artwork.title}</h3>
                 <p>{formatPrice(artwork.price)}</p>

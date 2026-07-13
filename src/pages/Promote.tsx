@@ -4,6 +4,7 @@ import { useStore } from '../store/useStore'
 import { BOOST_PRODUCTS } from '../data/boosts'
 import { formatPrice } from '../data/tariffs'
 import { isBoostActive } from '../data/boosts'
+import ArtworkMedia from '../components/ArtworkMedia'
 import './Promote.css'
 
 export default function Promote() {
@@ -57,7 +58,7 @@ export default function Promote() {
         <h1>VIP для «{artwork.title}»</h1>
 
         <div className="promote__current card">
-          <img src={artwork.imageUrl} alt={artwork.title} />
+          <ArtworkMedia wrapClassName="promote__media" src={artwork.imageUrl} alt={artwork.title} />
           <div>
             <p>Текущие VIP:</p>
             <ul>

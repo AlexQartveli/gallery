@@ -9,9 +9,11 @@
   align-items: start;
 }
 
-.artwork-detail__image { position: relative; overflow: hidden; }
+.artwork-detail__image { overflow: hidden; }
 
-.artwork-detail__image img { width: 100%; aspect-ratio: 4/5; object-fit: cover; }
+.artwork-detail__media {
+  aspect-ratio: 4/5;
+}
 
 .artwork-detail__ai {
   position: absolute;

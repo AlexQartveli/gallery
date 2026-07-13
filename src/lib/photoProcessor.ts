@@ -11,6 +11,7 @@ import {
   detectBackgroundBounds,
   detectPaintingBounds,
 } from './segment'
+import { drawWatermark } from './watermark'
 
 const PHOTO_PROCESS_PRICE = 5
 const MAX_WIDTH = 800
@@ -210,6 +211,7 @@ async function processImageFromExtracted(extracted: ExtractResult, category?: st
 
   drawWoodenFrame(ctx, width, height, mat, frame)
   ctx.drawImage(extracted.canvas, offset, offset, width, height)
+  drawWatermark(ctx, totalW, totalH)
 
   const { image, mime } = canvasToWebp(canvas)
   const sizeKb = Math.round((image.length * 0.75) / 1024)

@@ -16,7 +16,11 @@
 
 .purchase-checkout__summary { padding: 1.5rem; position: sticky; top: 80px; }
 
-.purchase-checkout__summary img { width: 100%; aspect-ratio: 4/5; object-fit: cover; border-radius: 8px; margin-bottom: 0.75rem; }
+.purchase-checkout__media {
+  aspect-ratio: 4/5;
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+}
 
 .purchase-checkout__summary h3 { font-family: var(--font-serif); }
 

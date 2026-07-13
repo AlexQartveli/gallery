@@ -3,6 +3,7 @@ import { useStore } from '../store/useStore'
 import { getCategory } from '../data/categories'
 import { formatPrice } from '../data/tariffs'
 import ArtworkCard from '../components/ArtworkCard'
+import ArtworkMedia from '../components/ArtworkMedia'
 import './ArtworkDetail.css'
 
 export default function ArtworkDetail() {
@@ -33,12 +34,13 @@ export default function ArtworkDetail() {
 
         <div className="artwork-detail__grid">
           <div className="artwork-detail__image card">
-            <img src={artwork.imageUrl} alt={artwork.title} />
-            {artwork.aiScore && (
-              <div className="artwork-detail__ai">
-                Качество фото: {artwork.aiScore}/10
-              </div>
-            )}
+            <ArtworkMedia wrapClassName="artwork-detail__media" src={artwork.imageUrl} alt={artwork.title}>
+              {artwork.aiScore && (
+                <div className="artwork-detail__ai">
+                  Качество фото: {artwork.aiScore}/10
+                </div>
+              )}
+            </ArtworkMedia>
           </div>
 
           <div className="artwork-detail__info">

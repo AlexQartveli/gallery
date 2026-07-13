@@ -11,7 +11,12 @@
   margin-bottom: 2rem;
 }
 
-.promote__current img { width: 100px; aspect-ratio: 4/5; object-fit: cover; border-radius: 8px; }
+.promote__media {
+  width: 100px;
+  flex-shrink: 0;
+  aspect-ratio: 4/5;
+  border-radius: 8px;
+}
 
 .promote__current ul { list-style: none; font-size: 0.875rem; color: var(--text-muted); margin-top: 0.5rem; }
 

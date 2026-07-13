@@ -244,14 +244,8 @@
   }
 }
 
-.cat-gallery__info-media {
-  position: relative;
-}
-
-.cat-gallery__info-media img {
-  width: 100%;
+.cat-gallery__info-media .artwork-media {
   aspect-ratio: 4 / 5;
-  object-fit: cover;
 }
 
 .cat-gallery__info-badge {
@@ -359,7 +353,7 @@
     grid-template-columns: 92px 1fr;
   }
 
-  .cat-gallery__info-media img {
+  .cat-gallery__info-media .artwork-media {
     height: 100%;
     min-height: 120px;
     aspect-ratio: auto;

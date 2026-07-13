@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useStore } from '../store/useStore'
 import { getTariff, formatPrice } from '../data/tariffs'
+import ArtworkMedia from './ArtworkMedia'
 import type { Artist } from '../types'
 import './ArtistCard.css'
 
@@ -51,11 +52,17 @@ export default function ArtistCard({ artist, showWorks = true }: ArtistCardProps
                 to={`/artwork/${work.id}`}
                 className={`artist-card__work ${index === 0 ? 'artist-card__work--hero' : ''}`}
               >
-                <img src={work.imageUrl} alt={work.title} loading="lazy" />
-                <div className="artist-card__work-info">
-                  <span className="artist-card__work-title">{work.title}</span>
-                  <span className="artist-card__work-price">{formatPrice(work.price)}</span>
-                </div>
+                <ArtworkMedia
+                  wrapClassName="artist-card__work-media"
+                  src={work.imageUrl}
+                  alt={work.title}
+                  loading="lazy"
+                >
+                  <div className="artist-card__work-info">
+                    <span className="artist-card__work-title">{work.title}</span>
+                    <span className="artist-card__work-price">{formatPrice(work.price)}</span>
+                  </div>
+                </ArtworkMedia>
               </Link>
             ))}
           </div>

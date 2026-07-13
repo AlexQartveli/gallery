@@ -5,6 +5,7 @@ import { getCategory } from '../data/categories'
 import { formatPrice } from '../data/tariffs'
 import CategoryGalleryScene, { getThemeForCategory, getThemeLabel } from '../components/Gallery3D/CategoryGalleryScene'
 import GalleryFallback from '../components/GalleryFallback'
+import ArtworkMedia from '../components/ArtworkMedia'
 import ErrorBoundary from '../components/ErrorBoundary'
 import Joystick from '../components/Joystick'
 import PageLoader from '../components/PageLoader'
@@ -169,8 +170,9 @@ export default function CategoryGallery() {
           <aside className="cat-gallery__info card">
             <Link to={`/artwork/${selected.id}`} className="cat-gallery__info-link">
               <div className="cat-gallery__info-media">
-                <img src={selected.imageUrl} alt={selected.title} />
-                <span className="cat-gallery__info-badge">Нажмите, чтобы открыть</span>
+                <ArtworkMedia src={selected.imageUrl} alt={selected.title}>
+                  <span className="cat-gallery__info-badge">Нажмите, чтобы открыть</span>
+                </ArtworkMedia>
               </div>
               <div className="cat-gallery__info-body">
                 <h3>{selected.title}</h3>
