@@ -27,6 +27,12 @@ function median(values: number[]): number {
   return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
 }
 
+function percentile(values: number[], p: number): number {
+  if (!values.length) return 0
+  const sorted = [...values].sort((a, b) => a - b)
+  return sorted[Math.min(sorted.length - 1, Math.max(0, Math.floor(sorted.length * p)))]
+}
+
 function estimateBackground(data: Uint8ClampedArray, w: number, h: number): Rgb {
   const samples: Rgb[] = []
   const pts = [
@@ -104,93 +110,146 @@ export function detectBackgroundBounds(data: Uint8ClampedArray, w: number, h: nu
     }
   }
 
-  if (right - left < w * 0.4 || bottom - top < h * 0.4) {
+  const objectW = right - left
+  const objectH = bottom - top
+  if (objectW < w * 0.2 || objectH < h * 0.15 || objectW * objectH < w * h * 0.06) {
     return { top: 0, bottom: h, left: 0, right: w }
   }
 
   return { top, bottom, left, right }
 }
 
-function isFrameLike(c: Rgb): boolean {
-  const { r, g, b } = c
-  if (r > 70 && r < 210 && g < r * 0.88 && b < r * 0.8 && r - g > 8) return true
-  if (r > 195 && g > 185 && b > 155 && Math.max(r, g, b) - Math.min(r, g, b) < 40) return true
-  return false
-}
-
-function rowFrameRatio(data: Uint8ClampedArray, w: number, y: number, x0: number, x1: number): number {
-  let n = 0
-  let frame = 0
+function horizontalContourScore(
+  data: Uint8ClampedArray,
+  w: number,
+  y: number,
+  x0: number,
+  x1: number,
+): number {
+  const values: number[] = []
   for (let x = x0; x < x1; x += 2) {
-    if (isFrameLike(sampleRgb(data, w, x, y))) frame++
-    n++
+    values.push(colorDist(sampleRgb(data, w, x, y - 1), sampleRgb(data, w, x, y + 1)))
   }
-  return n ? frame / n : 0
+  if (!values.length) return 0
+  const strongShare = values.filter((v) => v > 18).length / values.length
+  return percentile(values, 0.42) + percentile(values, 0.72) * 0.35 + strongShare * 12
 }
 
-function colFrameRatio(data: Uint8ClampedArray, w: number, x: number, y0: number, y1: number): number {
-  let n = 0
-  let frame = 0
+function verticalContourScore(
+  data: Uint8ClampedArray,
+  w: number,
+  x: number,
+  y0: number,
+  y1: number,
+): number {
+  const values: number[] = []
   for (let y = y0; y < y1; y += 2) {
-    if (isFrameLike(sampleRgb(data, w, x, y))) frame++
-    n++
+    values.push(colorDist(sampleRgb(data, w, x - 1, y), sampleRgb(data, w, x + 1, y)))
   }
-  return n ? frame / n : 0
+  if (!values.length) return 0
+  const strongShare = values.filter((v) => v > 18).length / values.length
+  return percentile(values, 0.42) + percentile(values, 0.72) * 0.35 + strongShare * 12
 }
 
-export function detectPaintingBounds(data: Uint8ClampedArray, w: number, _h: number, outer: Bounds): Bounds {
-  const x0 = Math.floor(outer.left + (outer.right - outer.left) * 0.05)
-  const x1 = Math.floor(outer.left + (outer.right - outer.left) * 0.95)
-  const y0 = Math.floor(outer.top + (outer.bottom - outer.top) * 0.05)
-  const y1 = Math.floor(outer.top + (outer.bottom - outer.top) * 0.95)
-  const maxScan = Math.floor(Math.min(outer.right - outer.left, outer.bottom - outer.top) * 0.28)
+function chooseInnerContour(profile: Array<{ pos: number; score: number }>, direction: 1 | -1): number | null {
+  if (!profile.length) return null
+  const scores = profile.map((p) => p.score)
+  const maxScore = Math.max(...scores)
+  const baseline = median(scores)
+  if (maxScore < 10 || maxScore < baseline * 1.25) return null
 
-  let top = outer.top
-  for (let y = outer.top; y < outer.top + maxScan; y++) {
-    if (rowFrameRatio(data, w, y, x0, x1) > 0.45) continue
-    if (rowFrameRatio(data, w, y + 1, x0, x1) < 0.38) {
-      top = y + 2
-      break
-    }
+  const threshold = Math.max(maxScore * 0.52, baseline + 3.5)
+  const candidates = profile.filter((p) => p.score >= threshold)
+  if (!candidates.length) return null
+
+  // A frame has several parallel contours. The deepest reliable contour is
+  // the edge between the old frame/mat and the actual painted surface.
+  return candidates.reduce((best, item) =>
+    direction === 1
+      ? (item.pos > best.pos ? item : best)
+      : (item.pos < best.pos ? item : best),
+  ).pos
+}
+
+function mirrorMissingSide(start: number | null, end: number | null, outerStart: number, outerEnd: number) {
+  if (start == null && end == null) return { start: outerStart, end: outerEnd }
+  if (start == null && end != null) {
+    const margin = outerEnd - end
+    return { start: outerStart + margin, end }
+  }
+  if (start != null && end == null) {
+    const margin = start - outerStart
+    return { start, end: outerEnd - margin }
+  }
+  return { start: start!, end: end! }
+}
+
+export function detectPaintingBounds(data: Uint8ClampedArray, w: number, h: number, outer: Bounds): Bounds {
+  const outerW = outer.right - outer.left
+  const outerH = outer.bottom - outer.top
+  const x0 = Math.floor(outer.left + outerW * 0.12)
+  const x1 = Math.floor(outer.right - outerW * 0.12)
+  const y0 = Math.floor(outer.top + outerH * 0.12)
+  const y1 = Math.floor(outer.bottom - outerH * 0.12)
+
+  const minX = Math.max(outer.left + 2, Math.floor(outer.left + outerW * 0.012))
+  const maxX = Math.min(outer.right - 2, Math.ceil(outer.left + outerW * 0.22))
+  const minRightX = Math.max(outer.left + 2, Math.floor(outer.right - outerW * 0.22))
+  const maxRightX = Math.min(outer.right - 2, Math.ceil(outer.right - outerW * 0.012))
+  const minY = Math.max(outer.top + 2, Math.floor(outer.top + outerH * 0.012))
+  const maxY = Math.min(outer.bottom - 2, Math.ceil(outer.top + outerH * 0.22))
+  const minBottomY = Math.max(outer.top + 2, Math.floor(outer.bottom - outerH * 0.22))
+  const maxBottomY = Math.min(outer.bottom - 2, Math.ceil(outer.bottom - outerH * 0.012))
+
+  const topProfile: Array<{ pos: number; score: number }> = []
+  const bottomProfile: Array<{ pos: number; score: number }> = []
+  const leftProfile: Array<{ pos: number; score: number }> = []
+  const rightProfile: Array<{ pos: number; score: number }> = []
+
+  for (let y = minY; y <= maxY; y++) {
+    topProfile.push({ pos: y, score: horizontalContourScore(data, w, y, x0, x1) })
+  }
+  for (let y = minBottomY; y <= maxBottomY; y++) {
+    bottomProfile.push({ pos: y, score: horizontalContourScore(data, w, y, x0, x1) })
+  }
+  for (let x = minX; x <= maxX; x++) {
+    leftProfile.push({ pos: x, score: verticalContourScore(data, w, x, y0, y1) })
+  }
+  for (let x = minRightX; x <= maxRightX; x++) {
+    rightProfile.push({ pos: x, score: verticalContourScore(data, w, x, y0, y1) })
   }
 
-  let bottom = outer.bottom
-  for (let y = outer.bottom - 1; y > outer.bottom - maxScan; y--) {
-    if (rowFrameRatio(data, w, y, x0, x1) > 0.45) continue
-    if (rowFrameRatio(data, w, y - 1, x0, x1) < 0.38) {
-      bottom = y - 1
-      break
-    }
-  }
+  const vertical = mirrorMissingSide(
+    chooseInnerContour(topProfile, 1),
+    chooseInnerContour(bottomProfile, -1),
+    outer.top,
+    outer.bottom,
+  )
+  const horizontal = mirrorMissingSide(
+    chooseInnerContour(leftProfile, 1),
+    chooseInnerContour(rightProfile, -1),
+    outer.left,
+    outer.right,
+  )
 
-  let left = outer.left
-  for (let x = outer.left; x < outer.left + maxScan; x++) {
-    if (colFrameRatio(data, w, x, y0, y1) > 0.45) continue
-    if (colFrameRatio(data, w, x + 1, y0, y1) < 0.38) {
-      left = x + 2
-      break
-    }
-  }
+  let top = vertical.start
+  let bottom = vertical.end
+  let left = horizontal.start
+  let right = horizontal.end
 
-  let right = outer.right
-  for (let x = outer.right - 1; x > outer.right - maxScan; x--) {
-    if (colFrameRatio(data, w, x, y0, y1) > 0.45) continue
-    if (colFrameRatio(data, w, x - 1, y0, y1) < 0.38) {
-      right = x - 1
-      break
-    }
-  }
-
-  const inset = Math.max(3, Math.round(Math.min(right - left, bottom - top) * 0.012))
-  top = Math.min(bottom - 4, top + inset)
-  bottom = Math.max(top + 4, bottom - inset)
-  left = Math.min(right - 4, left + inset)
-  right = Math.max(left + 4, right - inset)
-
-  const minW = (outer.right - outer.left) * 0.42
-  const minH = (outer.bottom - outer.top) * 0.42
+  const minW = outerW * 0.48
+  const minH = outerH * 0.48
   if (right - left < minW || bottom - top < minH) return outer
 
+  // Move a few pixels into the canvas so antialiased remnants of the old
+  // frame cannot survive the resize.
+  const inset = Math.max(2, Math.round(Math.min(right - left, bottom - top) * 0.006))
+  top += inset
+  bottom -= inset
+  left += inset
+  right -= inset
+
+  if (right <= left || bottom <= top || w < 1 || h < 1) return outer
   return { top, bottom, left, right }
 }
 
