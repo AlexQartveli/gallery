@@ -227,6 +227,17 @@ export const useStore = create<AppState>()(
         return order
       },
     }),
-    { name: 'geo-gallery-store-v3' }
+    {
+      name: 'geo-gallery-store-v3',
+      onRehydrateStorage: () => (_state, error) => {
+        if (error) {
+          try {
+            localStorage.removeItem('geo-gallery-store-v3')
+          } catch {
+            // ignore storage errors
+          }
+        }
+      },
+    }
   )
 )

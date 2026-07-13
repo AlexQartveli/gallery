@@ -8,8 +8,25 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+    <style>
+      #boot {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        background: #0f0e0d;
+        color: #a89f96;
+        font-family: Inter, system-ui, sans-serif;
+        z-index: 9999;
+      }
+      #boot strong { color: #c9a962; font-weight: 600; }
+    </style>
   </head>
   <body>
+    <div id="boot"><strong>◆ Geo Gallery</strong><span>Загрузка…</span></div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

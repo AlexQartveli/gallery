@@ -4,8 +4,12 @@ import { useStore } from '../store/useStore'
 import { getCategory } from '../data/categories'
 import { formatPrice } from '../data/tariffs'
 import CategoryGalleryScene, { getThemeForCategory } from '../components/Gallery3D/CategoryGalleryScene'
+import GalleryFallback from '../components/GalleryFallback'
+import ErrorBoundary from '../components/ErrorBoundary'
 import Joystick from '../components/Joystick'
+import PageLoader from '../components/PageLoader'
 import { initKeyboardInput, addLookDelta } from '../gallery/input'
+import { isWebGLAvailable } from '../lib/webgl'
 import type { Artwork, CategoryId } from '../types'
 import './CategoryGallery.css'
 
@@ -15,6 +19,7 @@ export default function CategoryGallery() {
   const artworks = useStore((s) => s.getCategoryWorks(category ?? ''))
   const [selected, setSelected] = useState<Artwork | null>(null)
   const [isMobile, setIsMobile] = useState(false)
+  const [use3d, setUse3d] = useState<boolean | null>(null)
 
   useEffect(() => {
     const cleanup = initKeyboardInput()
@@ -28,6 +33,10 @@ export default function CategoryGallery() {
     return () => window.removeEventListener('resize', check)
   }, [])
 
+  useEffect(() => {
+    setUse3d(isWebGLAvailable())
+  }, [])
+
   if (!cat) {
     return (
       <div className="container" style={{ padding: '4rem 0' }}>
@@ -37,11 +46,41 @@ export default function CategoryGallery() {
     )
   }
 
+  if (use3d === null) {
+    return <PageLoader label="Подготовка галереи…" />
+  }
+
+  if (!use3d) {
+    return (
+      <GalleryFallback
+        categoryName={cat.name}
+        categoryIcon={cat.icon}
+        artworks={artworks}
+      />
+    )
+  }
+
   const theme = getThemeForCategory(cat.id)
 
   return (
     <div className="cat-gallery">
-      <CategoryGalleryScene artworks={artworks} theme={theme} onSelect={setSelected} />
+      <ErrorBoundary
+        onError={() => setUse3d(false)}
+        fallback={
+          <GalleryFallback
+            categoryName={cat.name}
+            categoryIcon={cat.icon}
+            artworks={artworks}
+          />
+        }
+      >
+        <CategoryGalleryScene
+          artworks={artworks}
+          theme={theme}
+          onSelect={setSelected}
+          onFatalError={() => setUse3d(false)}
+        />
+      </ErrorBoundary>
 
       <div className="cat-gallery__hud">
         <div className="cat-gallery__title">

@@ -1,10 +1,8 @@
-import { useRef, useEffect, Suspense, useMemo } from 'react'
+import { useRef, useEffect, useMemo, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { Text, useTexture } from '@react-three/drei'
 import * as THREE from 'three'
 import { input, consumeLookDelta, addLookDelta } from '../../gallery/input'
 import type { Artwork, CategoryId } from '../../types'
-import { formatPrice } from '../../data/tariffs'
 import { isBoostActive } from '../../data/boosts'
 
 const EYE_H = 1.6
@@ -33,6 +31,7 @@ interface GallerySceneProps {
   artworks: Artwork[]
   theme: string
   onSelect: (artwork: Artwork | null) => void
+  onFatalError?: (error: Error) => void
 }
 
 function Room({ theme }: { theme: Theme }) {
@@ -63,15 +62,52 @@ function Room({ theme }: { theme: Theme }) {
         <planeGeometry args={[w, d]} />
         <meshStandardMaterial color={theme.ceiling} side={THREE.DoubleSide} />
       </mesh>
-      <pointLight position={[0, h - 0.5, 0]} intensity={15} distance={20} color={theme.light} />
-      <pointLight position={[-6, h - 1, 0]} intensity={8} distance={12} color={theme.light} />
-      <pointLight position={[6, h - 1, 0]} intensity={8} distance={12} color={theme.light} />
+      <pointLight position={[0, h - 0.5, 0]} intensity={18} distance={24} color={theme.light} />
+      <pointLight position={[-6, h - 1, 0]} intensity={10} distance={14} color={theme.light} />
+      <pointLight position={[6, h - 1, 0]} intensity={10} distance={14} color={theme.light} />
     </group>
   )
 }
 
+function useArtworkTexture(url: string) {
+  const [texture, setTexture] = useState<THREE.Texture | null>(null)
+
+  useEffect(() => {
+    let active = true
+    const loader = new THREE.TextureLoader()
+    loader.setCrossOrigin('anonymous')
+    loader.load(
+      url,
+      (loaded) => {
+        if (!active) {
+          loaded.dispose()
+          return
+        }
+        loaded.colorSpace = THREE.SRGBColorSpace
+        setTexture(loaded)
+      },
+      undefined,
+      () => {
+        if (active) setTexture(null)
+      }
+    )
+
+    return () => {
+      active = false
+    }
+  }, [url])
+
+  useEffect(() => {
+    return () => {
+      texture?.dispose()
+    }
+  }, [texture])
+
+  return texture
+}
+
 function WallArt({ artwork, position, rotation }: { artwork: Artwork; position: [number, number, number]; rotation: [number, number, number] }) {
-  const texture = useTexture(artwork.imageUrl)
+  const texture = useArtworkTexture(artwork.imageUrl)
   const aspect = artwork.width / artwork.height
   const h = 1.5
   const w = Math.min(h * aspect, 2.2)
@@ -93,23 +129,16 @@ function WallArt({ artwork, position, rotation }: { artwork: Artwork; position: 
       )}
       <mesh position={[0, 0, -0.04]}>
         <boxGeometry args={[w + 0.12, h + 0.12, 0.06]} />
-        <meshStandardMaterial color={hasCrown ? '#9a7b4f' : '#6b5a45'} roughness={0.7} emissive={hasSpotlight ? '#332200' : '#000000'} />
+        <meshStandardMaterial
+          color={hasCrown ? '#9a7b4f' : '#6b5a45'}
+          roughness={0.7}
+          emissive={hasSpotlight ? '#332200' : '#000000'}
+        />
       </mesh>
       <mesh position={[0, 0, 0.01]} userData={{ artwork }}>
         <planeGeometry args={[w, h]} />
-        <meshBasicMaterial map={texture} />
+        <meshBasicMaterial map={texture ?? undefined} color={texture ? '#ffffff' : '#4a4038'} />
       </mesh>
-      {hasCrown && (
-        <Text position={[0, h / 2 + 0.28, 0.06]} fontSize={0.18} anchorX="center">
-          👑
-        </Text>
-      )}
-      <Text position={[0, -h / 2 - 0.25, 0.03]} fontSize={0.1} color="#c9a962" anchorX="center" maxWidth={w + 0.3}>
-        {artwork.title}
-      </Text>
-      <Text position={[0, -h / 2 - 0.42, 0.03]} fontSize={0.07} color="#a89f96" anchorX="center">
-        {formatPrice(artwork.price)}
-      </Text>
     </group>
   )
 }
@@ -145,6 +174,10 @@ function Controller({ onHover }: { onHover: (a: Artwork | null) => void }) {
   const pitch = useRef(0)
   const pos = useRef(new THREE.Vector3(0, EYE_H, 5))
   const ray = useRef(new THREE.Raycaster())
+  const fwd = useRef(new THREE.Vector3())
+  const right = useRef(new THREE.Vector3())
+  const move = useRef(new THREE.Vector3())
+  const center = useRef(new THREE.Vector2(0, 0))
   const last = useRef<Artwork | null>(null)
   const bounds = { x: ROOM.w / 2 - 1.2, z: ROOM.d / 2 - 1.2 }
 
@@ -156,18 +189,18 @@ function Controller({ onHover }: { onHover: (a: Artwork | null) => void }) {
     camera.rotation.y = yaw.current
     camera.rotation.x = pitch.current
 
-    const fwd = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw.current)
-    const right = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw.current)
-    const move = new THREE.Vector3()
-    move.addScaledVector(fwd, input.forward * SPEED * delta)
-    move.addScaledVector(right, input.right * SPEED * delta)
-    pos.current.add(move)
+    fwd.current.set(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw.current)
+    right.current.set(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw.current)
+    move.current.set(0, 0, 0)
+    move.current.addScaledVector(fwd.current, input.forward * SPEED * delta)
+    move.current.addScaledVector(right.current, input.right * SPEED * delta)
+    pos.current.add(move.current)
     pos.current.x = THREE.MathUtils.clamp(pos.current.x, -bounds.x, bounds.x)
     pos.current.z = THREE.MathUtils.clamp(pos.current.z, -bounds.z, bounds.z)
     pos.current.y = EYE_H
     camera.position.copy(pos.current)
 
-    ray.current.setFromCamera(new THREE.Vector2(0, 0), camera)
+    ray.current.setFromCamera(center.current, camera)
     const hits = ray.current.intersectObjects(scene.children, true)
     let found: Artwork | null = null
     for (const hit of hits) {
@@ -184,22 +217,85 @@ function Controller({ onHover }: { onHover: (a: Artwork | null) => void }) {
   return null
 }
 
+function TouchLook() {
+  const { gl } = useThree()
+  useEffect(() => {
+    const canvas = gl.domElement
+    let activeTouch: number | null = null
+    let lastX = 0
+    let lastY = 0
+
+    const onTouchStart = (event: TouchEvent) => {
+      if (event.touches.length !== 1) return
+      activeTouch = event.touches[0].identifier
+      lastX = event.touches[0].clientX
+      lastY = event.touches[0].clientY
+    }
+
+    const onTouchMove = (event: TouchEvent) => {
+      if (activeTouch === null) return
+      const touch = [...event.touches].find((t) => t.identifier === activeTouch)
+      if (!touch) return
+      addLookDelta((touch.clientX - lastX) * 0.004, (touch.clientY - lastY) * 0.004)
+      lastX = touch.clientX
+      lastY = touch.clientY
+    }
+
+    const onTouchEnd = () => {
+      activeTouch = null
+    }
+
+    canvas.addEventListener('touchstart', onTouchStart, { passive: true })
+    canvas.addEventListener('touchmove', onTouchMove, { passive: true })
+    canvas.addEventListener('touchend', onTouchEnd)
+    canvas.addEventListener('touchcancel', onTouchEnd)
+
+    return () => {
+      canvas.removeEventListener('touchstart', onTouchStart)
+      canvas.removeEventListener('touchmove', onTouchMove)
+      canvas.removeEventListener('touchend', onTouchEnd)
+      canvas.removeEventListener('touchcancel', onTouchEnd)
+    }
+  }, [gl])
+
+  return null
+}
+
 function MouseLook() {
   const { gl } = useThree()
   useEffect(() => {
     const canvas = gl.domElement
     let drag = false
-    let lx = 0, ly = 0
-    const down = (e: MouseEvent) => { if (e.button === 0) { drag = true; lx = e.clientX; ly = e.clientY; canvas.requestPointerLock?.() } }
-    const up = () => { drag = false }
+    let lx = 0
+    let ly = 0
+    const down = (e: MouseEvent) => {
+      if (e.button === 0) {
+        drag = true
+        lx = e.clientX
+        ly = e.clientY
+        canvas.requestPointerLock?.()
+      }
+    }
+    const up = () => {
+      drag = false
+    }
     const move = (e: MouseEvent) => {
-      if (document.pointerLockElement === canvas) addLookDelta(e.movementX * 0.002, e.movementY * 0.002)
-      else if (drag) { addLookDelta((e.clientX - lx) * 0.004, (e.clientY - ly) * 0.004); lx = e.clientX; ly = e.clientY }
+      if (document.pointerLockElement === canvas) {
+        addLookDelta(e.movementX * 0.002, e.movementY * 0.002)
+      } else if (drag) {
+        addLookDelta((e.clientX - lx) * 0.004, (e.clientY - ly) * 0.004)
+        lx = e.clientX
+        ly = e.clientY
+      }
     }
     canvas.addEventListener('mousedown', down)
     window.addEventListener('mouseup', up)
     window.addEventListener('mousemove', move)
-    return () => { canvas.removeEventListener('mousedown', down); window.removeEventListener('mouseup', up); window.removeEventListener('mousemove', move) }
+    return () => {
+      canvas.removeEventListener('mousedown', down)
+      window.removeEventListener('mouseup', up)
+      window.removeEventListener('mousemove', move)
+    }
   }, [gl])
   return null
 }
@@ -207,33 +303,43 @@ function MouseLook() {
 function SceneInner({ artworks, theme, onSelect }: GallerySceneProps) {
   const t = THEMES[theme] ?? THEMES.classic
   const positions = useMemo(() => getPositions(artworks), [artworks])
+  const isCoarsePointer = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
 
   return (
     <>
-      <ambientLight intensity={0.4} />
-      <fog attach="fog" args={[t.ceiling, 8, 22]} />
+      <ambientLight intensity={0.65} />
+      <hemisphereLight args={[t.light, t.floor, 0.35]} />
+      <fog attach="fog" args={[t.ceiling, 10, 24]} />
       <color attach="background" args={[t.ceiling]} />
       <Room theme={t} />
-      <Suspense fallback={null}>
-        {positions.map(({ artwork, position, rotation }) => (
-          <WallArt key={artwork.id} artwork={artwork} position={position} rotation={rotation} />
-        ))}
-      </Suspense>
+      {positions.map(({ artwork, position, rotation }) => (
+        <WallArt key={artwork.id} artwork={artwork} position={position} rotation={rotation} />
+      ))}
       <Controller onHover={onSelect} />
-      <MouseLook />
+      {isCoarsePointer ? <TouchLook /> : <MouseLook />}
     </>
   )
 }
 
-export default function CategoryGalleryScene({ artworks, theme, onSelect }: GallerySceneProps) {
+export default function CategoryGalleryScene({ artworks, theme, onSelect, onFatalError }: GallerySceneProps) {
   return (
     <Canvas
-      dpr={[1, 1.5]}
+      dpr={[1, Math.min(window.devicePixelRatio || 1, 1.5)]}
       camera={{ fov: 70, near: 0.1, far: 50, position: [0, EYE_H, 5] }}
-      gl={{ antialias: false, powerPreference: 'high-performance' }}
+      gl={{
+        antialias: false,
+        powerPreference: 'default',
+        alpha: false,
+        failIfMajorPerformanceCaveat: false,
+      }}
       style={{ width: '100%', height: '100%' }}
+      onCreated={({ gl }) => {
+        if (!gl.capabilities?.isWebGL2 && !gl.getContext()) {
+          onFatalError?.(new Error('WebGL unavailable'))
+        }
+      }}
     >
-      <SceneInner artworks={artworks} theme={theme} onSelect={onSelect} />
+      <SceneInner artworks={artworks} theme={theme} onSelect={onSelect} onFatalError={onFatalError} />
     </Canvas>
   )
 }
