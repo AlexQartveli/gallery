@@ -11,7 +11,7 @@ export default function Galleries() {
       <div className="container">
         <header className="galleries-page__header">
           <h1>3D Галереи</h1>
-          <p>Отдельный виртуальный зал для каждой категории искусства. WASD + мышь на ПК, джойстик на мобильных.</p>
+          <p>Четыре премиальных виртуальных коридора для разных направлений искусства. WASD + мышь на ПК, джойстик на мобильных.</p>
         </header>
         <div className="galleries-page__grid">
           {CATEGORIES.map((cat) => {

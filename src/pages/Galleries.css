@@ -62,13 +62,19 @@
   background: rgba(255, 255, 255, 0.18);
 }
 
-.gallery-card__preview[data-theme="classic"] { background: linear-gradient(135deg, #4a4038, #2a2520 70%); }
-.gallery-card__preview[data-theme="marble"] { background: linear-gradient(135deg, #f1ece6, #cfc7be 70%); }
-.gallery-card__preview[data-theme="modern"] { background: linear-gradient(135deg, #202020, #0d0d0d 70%); }
-.gallery-card__preview[data-theme="minimal"] { background: linear-gradient(135deg, #fafafa, #dedede 70%); }
-.gallery-card__preview[data-theme="neon"] { background: linear-gradient(135deg, #151530, #090912 70%); }
-.gallery-card__preview[data-theme="warm"] { background: linear-gradient(135deg, #5a4030, #3d2b1f 70%); }
-.gallery-card__preview[data-theme="cozy"] { background: linear-gradient(135deg, #4a3a30, #2e241c 70%); }
+.gallery-card__preview[data-theme="classic_realism"] { background: linear-gradient(160deg, #5c2838 0%, #2a1520 45%, #1a1410 100%); }
+.gallery-card__preview[data-theme="white_cube"] { background: linear-gradient(160deg, #ffffff 0%, #ece8e0 55%, #d8d4cc 100%); }
+.gallery-card__preview[data-theme="industrial_loft"] { background: linear-gradient(160deg, #6a6a6a 0%, #3a3a3a 50%, #1e1e1e 100%); }
+.gallery-card__preview[data-theme="digital_nft"] { background: linear-gradient(160deg, #1a1a3a 0%, #0a0a14 50%, #030308 100%); }
+
+/* legacy theme ids */
+.gallery-card__preview[data-theme="classic"] { background: linear-gradient(160deg, #5c2838, #1a1410 70%); }
+.gallery-card__preview[data-theme="marble"] { background: linear-gradient(160deg, #5c2838, #1a1410 70%); }
+.gallery-card__preview[data-theme="modern"] { background: linear-gradient(160deg, #6a6a6a, #1e1e1e 70%); }
+.gallery-card__preview[data-theme="minimal"] { background: linear-gradient(160deg, #ffffff, #d8d4cc 70%); }
+.gallery-card__preview[data-theme="neon"] { background: linear-gradient(160deg, #1a1a3a, #030308 70%); }
+.gallery-card__preview[data-theme="warm"] { background: linear-gradient(160deg, #6a6a6a, #1e1e1e 70%); }
+.gallery-card__preview[data-theme="cozy"] { background: linear-gradient(160deg, #6a6a6a, #1e1e1e 70%); }
 
 .gallery-card__icon {
   position: relative;

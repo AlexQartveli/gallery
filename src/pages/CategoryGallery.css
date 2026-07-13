@@ -103,6 +103,15 @@
   margin-bottom: 0.15rem;
 }
 
+.cat-gallery__subtitle {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  margin-bottom: 0.1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .cat-gallery__title {
   font-family: var(--font-serif);
   font-size: 1.125rem;

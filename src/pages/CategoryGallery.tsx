@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useStore } from '../store/useStore'
 import { getCategory } from '../data/categories'
 import { formatPrice } from '../data/tariffs'
-import CategoryGalleryScene, { getThemeForCategory, getThemeLabel } from '../components/Gallery3D/CategoryGalleryScene'
+import CategoryGalleryScene, { getThemeForCategory, getThemeLabel, getThemeSubtitle } from '../components/Gallery3D/CategoryGalleryScene'
 import GalleryFallback from '../components/GalleryFallback'
 import ArtworkMedia from '../components/ArtworkMedia'
 import ErrorBoundary from '../components/ErrorBoundary'
@@ -93,6 +93,7 @@ export default function CategoryGallery() {
 
   const theme = getThemeForCategory(cat.id)
   const themeLabel = getThemeLabel(theme)
+  const themeSubtitle = getThemeSubtitle(theme)
 
   return (
     <div className="cat-gallery">
@@ -125,6 +126,7 @@ export default function CategoryGallery() {
             <Link to="/galleries" className="cat-gallery__back" aria-label="К галереям">←</Link>
             <div className="cat-gallery__title-wrap">
               <p className="cat-gallery__eyebrow">{themeLabel}</p>
+              {themeSubtitle && <p className="cat-gallery__subtitle">{themeSubtitle}</p>}
               <h1 className="cat-gallery__title">{cat.icon} {cat.name}</h1>
             </div>
           </div>
