@@ -37,7 +37,7 @@
 
 .gallery-card__preview {
   position: relative;
-  height: 180px;
+  height: 112px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -56,7 +56,7 @@
 .gallery-card__preview::after {
   content: '';
   position: absolute;
-  inset: auto 1rem 1rem;
+  inset: auto 1rem 0.75rem;
   height: 3px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.18);

@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useStore } from '../store/useStore'
 import { getCategory } from '../data/categories'
 import { formatPrice } from '../data/tariffs'
@@ -14,6 +14,7 @@ import type { Artwork, CategoryId } from '../types'
 import './CategoryGallery.css'
 
 export default function CategoryGallery() {
+  const navigate = useNavigate()
   const { category } = useParams<{ category: string }>()
   const cat = getCategory(category as CategoryId)
   const allArtworks = useStore((s) => s.artworks)
@@ -36,6 +37,10 @@ export default function CategoryGallery() {
 
   const selectedArtist = selected ? artists.find((artist) => artist.id === selected.artistId) : undefined
 
+  const openSelected = useCallback((artwork: Artwork) => {
+    navigate(`/artwork/${artwork.id}`)
+  }, [navigate])
+
   useEffect(() => {
     const cleanup = initKeyboardInput()
     return cleanup
@@ -51,6 +56,16 @@ export default function CategoryGallery() {
   useEffect(() => {
     setUse3d(isWebGLAvailable())
   }, [])
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.key === 'Enter' || event.key === 'e') && selected) {
+        openSelected(selected)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [openSelected, selected])
 
   if (!cat) {
     return (
@@ -95,6 +110,7 @@ export default function CategoryGallery() {
           theme={theme}
           selectedId={selected?.id}
           onSelect={setSelected}
+          onOpenArtwork={openSelected}
           onFatalError={() => setUse3d(false)}
         />
       </ErrorBoundary>
@@ -117,7 +133,7 @@ export default function CategoryGallery() {
               <span>экспонатов</span>
             </div>
             <div className="cat-gallery__stat">
-              <strong>{Math.min(artworks.length, 10)}</strong>
+              <strong>{Math.min(artworks.length, 12)}</strong>
               <span>в зале</span>
             </div>
           </div>
@@ -134,6 +150,8 @@ export default function CategoryGallery() {
               Джойстик — движение
               <span>↔</span>
               Свайп — обзор
+              <span>↵</span>
+              Тап по картине — открыть
             </>
           ) : (
             <>
@@ -141,30 +159,36 @@ export default function CategoryGallery() {
               WASD — движение
               <span>◎</span>
               Мышь — обзор
+              <span>↵</span>
+              Клик — открыть лот
             </>
           )}
         </div>
 
         {selected && (
           <aside className="cat-gallery__info card">
-            <div className="cat-gallery__info-media">
-              <img src={selected.imageUrl} alt={selected.title} />
-              <span className="cat-gallery__info-badge">Вы смотрите</span>
-            </div>
-            <div className="cat-gallery__info-body">
-              <h3>{selected.title}</h3>
-              {selectedArtist && (
-                <Link to={`/artist/${selectedArtist.id}`} className="cat-gallery__artist">
-                  <img src={selectedArtist.avatar} alt="" />
-                  <span>
-                    <strong>{selectedArtist.name}</strong>
-                    <small>{selectedArtist.city}</small>
-                  </span>
-                </Link>
-              )}
-              <p className="cat-gallery__price">{formatPrice(selected.price)}</p>
-              <Link to={`/artwork/${selected.id}`} className="btn btn-primary">Открыть карточку лота</Link>
-            </div>
+            <Link to={`/artwork/${selected.id}`} className="cat-gallery__info-link">
+              <div className="cat-gallery__info-media">
+                <img src={selected.imageUrl} alt={selected.title} />
+                <span className="cat-gallery__info-badge">Нажмите, чтобы открыть</span>
+              </div>
+              <div className="cat-gallery__info-body">
+                <h3>{selected.title}</h3>
+                <p className="cat-gallery__price">{formatPrice(selected.price)}</p>
+              </div>
+            </Link>
+            {selectedArtist && (
+              <Link to={`/artist/${selectedArtist.id}`} className="cat-gallery__artist">
+                <img src={selectedArtist.avatar} alt="" />
+                <span>
+                  <strong>{selectedArtist.name}</strong>
+                  <small>{selectedArtist.city}</small>
+                </span>
+              </Link>
+            )}
+            <Link to={`/artwork/${selected.id}`} className="btn btn-primary cat-gallery__open-btn">
+              Открыть карточку лота
+            </Link>
           </aside>
         )}
       </div>

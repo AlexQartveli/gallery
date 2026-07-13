@@ -6,8 +6,8 @@ import type { Artwork, CategoryId } from '../../types'
 import { isBoostActive } from '../../data/boosts'
 
 const EYE_H = 1.6
-const SPEED = 4
-const ROOM = { w: 24, d: 16, h: 4.5 }
+const SPEED = 4.5
+const ROOM = { w: 11, d: 42, h: 4.5 }
 
 interface Theme {
   wall: string
@@ -114,11 +114,13 @@ interface GallerySceneProps {
   theme: string
   selectedId?: string | null
   onSelect: (artwork: Artwork | null) => void
+  onOpenArtwork?: (artwork: Artwork) => void
   onFatalError?: (error: Error) => void
 }
 
 function Room({ theme }: { theme: Theme }) {
   const { w, d, h } = ROOM
+  const hw = w / 2 - 0.35
   const isNeon = theme.accent === '#00ffcc'
 
   return (
@@ -130,7 +132,7 @@ function Room({ theme }: { theme: Theme }) {
 
       {/* Floor inlay */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
-        <planeGeometry args={[w * 0.55, d * 0.42]} />
+        <planeGeometry args={[2.4, d * 0.82]} />
         <meshStandardMaterial color={theme.wallAccent} roughness={0.75} metalness={0.04} />
       </mesh>
 
@@ -162,16 +164,16 @@ function Room({ theme }: { theme: Theme }) {
       </mesh>
 
       {/* Ceiling coffers */}
-      {[-4, 0, 4].map((x) => (
-        <mesh key={x} rotation={[Math.PI / 2, 0, 0]} position={[x, h - 0.05, 0]}>
-          <planeGeometry args={[3.2, d * 0.7]} />
+      {[-14, -7, 0, 7, 14].map((z) => (
+        <mesh key={z} rotation={[Math.PI / 2, 0, 0]} position={[0, h - 0.05, z]}>
+          <planeGeometry args={[w * 0.72, 5.8]} />
           <meshStandardMaterial color={theme.wallAccent} roughness={0.9} />
         </mesh>
       ))}
 
       {/* Ceiling lights */}
-      {[-6, 0, 6].map((x) => (
-        <group key={x} position={[x, h - 0.35, 0]}>
+      {[-15, -7.5, 0, 7.5, 15].map((z) => (
+        <group key={z} position={[0, h - 0.35, z]}>
           <mesh>
             <cylinderGeometry args={[0.35, 0.5, 0.18, 24]} />
             <meshStandardMaterial color={theme.trim} roughness={0.25} metalness={0.65} emissive={theme.light} emissiveIntensity={isNeon ? 0.35 : 0.12} />
@@ -182,12 +184,12 @@ function Room({ theme }: { theme: Theme }) {
 
       {isNeon && (
         <>
-          <mesh position={[0, 0.03, -d / 2 + 0.2]}>
-            <boxGeometry args={[w * 0.8, 0.04, 0.08]} />
+          <mesh position={[-hw + 0.2, 0.03, 0]}>
+            <boxGeometry args={[0.08, 0.04, d * 0.84]} />
             <meshStandardMaterial color={theme.accent} emissive={theme.accent} emissiveIntensity={1.2} />
           </mesh>
-          <mesh position={[0, 0.03, d / 2 - 0.2]}>
-            <boxGeometry args={[w * 0.8, 0.04, 0.08]} />
+          <mesh position={[hw - 0.2, 0.03, 0]}>
+            <boxGeometry args={[0.08, 0.04, d * 0.84]} />
             <meshStandardMaterial color={theme.accent} emissive={theme.accent} emissiveIntensity={1.2} />
           </mesh>
         </>
@@ -323,37 +325,46 @@ function getPositions(artworks: Artwork[]) {
     const bV = (isBoostActive(b.vipBoosts?.crown) ? 2 : 0) + (isBoostActive(b.vipBoosts?.spotlight) ? 1 : 0)
     return bV - aV
   })
-  const items = sorted.slice(0, 10)
+  const items = sorted.slice(0, 12)
   const positions: { artwork: Artwork; position: [number, number, number]; rotation: [number, number, number] }[] = []
   const y = 1.85
   const hw = ROOM.w / 2 - 0.35
-  const hd = ROOM.d / 2 - 0.35
+  const spacing = 6.8
+  const rows = Math.ceil(items.length / 2)
+  const startZ = -((rows - 1) * spacing) / 2
 
-  items.slice(0, 4).forEach((a, i) => {
-    positions.push({ artwork: a, position: [-7 + i * 4.5, y, -hd], rotation: [0, 0, 0] })
-  })
-  items.slice(4, 7).forEach((a, i) => {
-    positions.push({ artwork: a, position: [-7 + i * 4.5, y, hd], rotation: [0, Math.PI, 0] })
-  })
-  items.slice(7, 10).forEach((a, i) => {
-    positions.push({ artwork: a, position: [-hw, y, -4 + i * 4], rotation: [0, Math.PI / 2, 0] })
+  items.forEach((artwork, index) => {
+    const row = Math.floor(index / 2)
+    const onLeft = index % 2 === 0
+    const z = startZ + row * spacing
+    positions.push({
+      artwork,
+      position: [onLeft ? -hw : hw, y, z],
+      rotation: [0, onLeft ? Math.PI / 2 : -Math.PI / 2, 0],
+    })
   })
 
   return positions
 }
 
-function Controller({ onHover }: { onHover: (a: Artwork | null) => void }) {
-  const { camera, scene } = useThree()
+function Controller({
+  onHover,
+  onOpenArtwork,
+}: {
+  onHover: (a: Artwork | null) => void
+  onOpenArtwork?: (a: Artwork) => void
+}) {
+  const { camera, scene, gl } = useThree()
   const yaw = useRef(0)
   const pitch = useRef(0)
-  const pos = useRef(new THREE.Vector3(0, EYE_H, 5))
+  const pos = useRef(new THREE.Vector3(0, EYE_H, ROOM.d / 2 - 2.5))
   const ray = useRef(new THREE.Raycaster())
   const fwd = useRef(new THREE.Vector3())
   const right = useRef(new THREE.Vector3())
   const move = useRef(new THREE.Vector3())
   const center = useRef(new THREE.Vector2(0, 0))
   const last = useRef<Artwork | null>(null)
-  const bounds = { x: ROOM.w / 2 - 1.2, z: ROOM.d / 2 - 1.2 }
+  const bounds = { x: ROOM.w / 2 - 1.1, z: ROOM.d / 2 - 1.4 }
 
   useFrame((_, delta) => {
     const { lookX, lookY } = consumeLookDelta()
@@ -388,6 +399,52 @@ function Controller({ onHover }: { onHover: (a: Artwork | null) => void }) {
       onHover(found)
     }
   })
+
+  useEffect(() => {
+    const canvas = gl.domElement
+    let pointerDown = false
+    let startX = 0
+    let startY = 0
+    let moved = false
+
+    const tryOpen = () => {
+      if (!moved && last.current) {
+        onOpenArtwork?.(last.current)
+      }
+    }
+
+    const onPointerDown = (event: PointerEvent) => {
+      pointerDown = true
+      moved = false
+      startX = event.clientX
+      startY = event.clientY
+    }
+
+    const onPointerMove = (event: PointerEvent) => {
+      if (!pointerDown) return
+      if (Math.hypot(event.clientX - startX, event.clientY - startY) > 8) {
+        moved = true
+      }
+    }
+
+    const onPointerUp = () => {
+      if (pointerDown) tryOpen()
+      pointerDown = false
+    }
+
+    canvas.addEventListener('pointerdown', onPointerDown)
+    canvas.addEventListener('pointermove', onPointerMove)
+    canvas.addEventListener('pointerup', onPointerUp)
+    canvas.addEventListener('pointercancel', onPointerUp)
+
+    return () => {
+      canvas.removeEventListener('pointerdown', onPointerDown)
+      canvas.removeEventListener('pointermove', onPointerMove)
+      canvas.removeEventListener('pointerup', onPointerUp)
+      canvas.removeEventListener('pointercancel', onPointerUp)
+    }
+  }, [gl, onOpenArtwork])
+
   return null
 }
 
@@ -474,7 +531,7 @@ function MouseLook() {
   return null
 }
 
-function SceneInner({ artworks, theme, selectedId, onSelect }: GallerySceneProps) {
+function SceneInner({ artworks, theme, selectedId, onSelect, onOpenArtwork }: GallerySceneProps) {
   const t = THEMES[theme] ?? THEMES.classic
   const positions = useMemo(() => getPositions(artworks), [artworks])
   const isCoarsePointer = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
@@ -484,7 +541,7 @@ function SceneInner({ artworks, theme, selectedId, onSelect }: GallerySceneProps
       <ambientLight intensity={0.42} />
       <hemisphereLight args={[t.light, t.floor, 0.28]} />
       <directionalLight position={[0, 6, 4]} intensity={0.35} color={t.light} />
-      <fog attach="fog" args={[t.ceiling, t.fogNear, t.fogFar]} />
+      <fog attach="fog" args={[t.ceiling, t.fogNear, Math.max(t.fogFar, ROOM.d - 2)]} />
       <color attach="background" args={[t.ceiling]} />
       <Room theme={t} />
       {positions.map(({ artwork, position, rotation }) => (
@@ -497,17 +554,17 @@ function SceneInner({ artworks, theme, selectedId, onSelect }: GallerySceneProps
           selected={selectedId === artwork.id}
         />
       ))}
-      <Controller onHover={onSelect} />
+      <Controller onHover={onSelect} onOpenArtwork={onOpenArtwork} />
       {isCoarsePointer ? <TouchLook /> : <MouseLook />}
     </>
   )
 }
 
-export default function CategoryGalleryScene({ artworks, theme, selectedId, onSelect, onFatalError }: GallerySceneProps) {
+export default function CategoryGalleryScene({ artworks, theme, selectedId, onSelect, onOpenArtwork, onFatalError }: GallerySceneProps) {
   return (
     <Canvas
       dpr={[1, Math.min(window.devicePixelRatio || 1, 1.5)]}
-      camera={{ fov: 68, near: 0.1, far: 50, position: [0, EYE_H, 5] }}
+      camera={{ fov: 68, near: 0.1, far: 60, position: [0, EYE_H, ROOM.d / 2 - 2.5] }}
       gl={{
         antialias: false,
         powerPreference: 'default',
@@ -521,7 +578,7 @@ export default function CategoryGalleryScene({ artworks, theme, selectedId, onSe
         }
       }}
     >
-      <SceneInner artworks={artworks} theme={theme} selectedId={selectedId} onSelect={onSelect} onFatalError={onFatalError} />
+      <SceneInner artworks={artworks} theme={theme} selectedId={selectedId} onSelect={onSelect} onOpenArtwork={onOpenArtwork} onFatalError={onFatalError} />
     </Canvas>
   )
 }

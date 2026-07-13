@@ -32,9 +32,9 @@
   position: fixed;
   top: 64px;
   right: 0;
-  bottom: 0;
+  bottom: 180px;
   left: 120px;
-  z-index: 150;
+  z-index: 120;
   touch-action: none;
 }
 
