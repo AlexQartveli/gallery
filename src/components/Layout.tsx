@@ -154,9 +154,6 @@ export default function Layout() {
       {!isGallery && (
         <footer className="footer">
           <div className="container footer__inner">
-            <Link to="/" className="footer__logo" aria-label="Geo Gallery — на главную">
-              <Logo />
-            </Link>
             <p>© 2026 Geo Gallery — маркетплейс искусства с онлайн-галереями</p>
             <p className="footer__note">Размещение платное · Geo Gallery выкупает работы и доставляет покупателям</p>
             <a href="https://geogallery.online" className="footer__domain">geogallery.online</a>
