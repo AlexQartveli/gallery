@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { processPhotoDetailed, type ProcessPhotoReport } from '../lib/photoProcessor'
+import ArtworkMedia from '../components/ArtworkMedia'
 import './PhotoUploadTest.css'
 
 function buildReportJson(report: ProcessPhotoReport): string {
@@ -27,6 +28,7 @@ function buildReportJson(report: ProcessPhotoReport): string {
       nativeFrameRemoved: report.crop?.cropped ?? false,
       perspectiveCorrected: report.extractMethod === 'perspective',
       artworkKeptWhole: Boolean(report.artwork?.width && report.artwork?.height),
+      watermark: true,
     },
   }
 
@@ -147,7 +149,7 @@ export default function PhotoUploadTest() {
               </div>
               <div className="upload-test__preview card">
                 <h3>Результат</h3>
-                <img src={report.result.image} alt="Результат" />
+                <ArtworkMedia wrapClassName="upload-test__media" src={report.result.image} alt="Результат" />
                 <dl>
                   <dt>Формат</dt><dd>{report.result.mime}</dd>
                   <dt>Размер</dt><dd>{report.result.sizeKb} КБ</dd>

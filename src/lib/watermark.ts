@@ -1,12 +1,17 @@
 export const WATERMARK_TEXT = 'geogallery.online'
 
-export function drawWatermark(ctx: CanvasRenderingContext2D, width: number, height: number) {
+export function drawWatermark(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  opacity = 0.24,
+) {
   const fontSize = Math.max(11, Math.round(Math.min(width, height) * 0.038))
   const stepX = fontSize * 9.5
   const stepY = fontSize * 3.2
 
   ctx.save()
-  ctx.globalAlpha = 0.24
+  ctx.globalAlpha = opacity
   ctx.fillStyle = '#ffffff'
   ctx.font = `600 ${fontSize}px Inter, system-ui, sans-serif`
   ctx.textBaseline = 'middle'
@@ -23,6 +28,49 @@ export function drawWatermark(ctx: CanvasRenderingContext2D, width: number, heig
     }
   }
 
+  ctx.restore()
+}
+
+export function drawWatermarkCorner(ctx: CanvasRenderingContext2D, width: number, height: number) {
+  const label = WATERMARK_TEXT
+  const fontSize = Math.max(10, Math.round(Math.min(width, height) * 0.022))
+  const paddingX = Math.max(8, width * 0.012)
+  const paddingY = Math.max(6, height * 0.012)
+
+  ctx.save()
+  ctx.font = `600 ${fontSize}px Inter, system-ui, sans-serif`
+  const textW = ctx.measureText(label).width
+  const boxW = textW + paddingX * 2
+  const boxH = fontSize + paddingY * 2
+  const x = width - boxW - paddingX
+  const y = height - boxH - paddingY
+
+  ctx.fillStyle = 'rgba(15, 14, 13, 0.42)'
+  ctx.fillRect(x, y, boxW, boxH)
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.72)'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(label, x + paddingX, y + boxH / 2)
+  ctx.restore()
+}
+
+export function drawArtworkWatermark(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+) {
+  ctx.save()
+  ctx.beginPath()
+  ctx.rect(x, y, width, height)
+  ctx.clip()
+  ctx.translate(x, y)
+  drawWatermark(ctx, width, height, 0.34)
+  ctx.restore()
+
+  ctx.save()
+  ctx.translate(x, y)
+  drawWatermarkCorner(ctx, width, height)
   ctx.restore()
 }
 
