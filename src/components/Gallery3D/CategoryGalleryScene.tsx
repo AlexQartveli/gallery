@@ -11,60 +11,187 @@ const ROOM = { w: 24, d: 16, h: 4.5 }
 
 interface Theme {
   wall: string
+  wallAccent: string
   floor: string
   ceiling: string
   accent: string
   light: string
+  trim: string
+  plaque: string
+  fogNear: number
+  fogFar: number
 }
 
 const THEMES: Record<string, Theme> = {
-  classic: { wall: '#3a342e', floor: '#2a2520', ceiling: '#1a1714', accent: '#c9a962', light: '#fff5e0' },
-  marble: { wall: '#e8e4df', floor: '#d4cfc8', ceiling: '#f5f3f0', accent: '#8b7355', light: '#ffffff' },
-  modern: { wall: '#1a1a1a', floor: '#111111', ceiling: '#0a0a0a', accent: '#ffffff', light: '#f0f0f0' },
-  minimal: { wall: '#f5f5f5', floor: '#eeeeee', ceiling: '#ffffff', accent: '#333333', light: '#ffffff' },
-  neon: { wall: '#0d0d1a', floor: '#0a0a12', ceiling: '#050508', accent: '#00ffcc', light: '#8866ff' },
-  warm: { wall: '#4a3528', floor: '#3d2b1f', ceiling: '#2a1e15', accent: '#d4845a', light: '#ffecd2' },
-  cozy: { wall: '#3d3028', floor: '#2e241c', ceiling: '#1f1812', accent: '#b8956a', light: '#ffe4c4' },
+  classic: {
+    wall: '#4a4038',
+    wallAccent: '#3a342e',
+    floor: '#2f2820',
+    ceiling: '#1f1b17',
+    accent: '#c9a962',
+    light: '#fff1d6',
+    trim: '#8b7355',
+    plaque: '#2a2520',
+    fogNear: 12,
+    fogFar: 28,
+  },
+  marble: {
+    wall: '#ece7e1',
+    wallAccent: '#ddd6ce',
+    floor: '#cfc7be',
+    ceiling: '#faf8f5',
+    accent: '#8b7355',
+    light: '#ffffff',
+    trim: '#b8aea3',
+    plaque: '#e8e2db',
+    fogNear: 14,
+    fogFar: 30,
+  },
+  modern: {
+    wall: '#242424',
+    wallAccent: '#181818',
+    floor: '#121212',
+    ceiling: '#0a0a0a',
+    accent: '#ffffff',
+    light: '#f5f5f5',
+    trim: '#555555',
+    plaque: '#1a1a1a',
+    fogNear: 10,
+    fogFar: 24,
+  },
+  minimal: {
+    wall: '#f3f3f3',
+    wallAccent: '#e8e8e8',
+    floor: '#ececec',
+    ceiling: '#ffffff',
+    accent: '#333333',
+    light: '#ffffff',
+    trim: '#cccccc',
+    plaque: '#f7f7f7',
+    fogNear: 14,
+    fogFar: 30,
+  },
+  neon: {
+    wall: '#121228',
+    wallAccent: '#0d0d1a',
+    floor: '#0a0a14',
+    ceiling: '#05050c',
+    accent: '#00ffcc',
+    light: '#9f7bff',
+    trim: '#00ffcc',
+    plaque: '#10101f',
+    fogNear: 8,
+    fogFar: 22,
+  },
+  warm: {
+    wall: '#5a4030',
+    wallAccent: '#4a3528',
+    floor: '#3d2b1f',
+    ceiling: '#2a1e15',
+    accent: '#d4845a',
+    light: '#ffecd2',
+    trim: '#b8956a',
+    plaque: '#35261c',
+    fogNear: 11,
+    fogFar: 26,
+  },
+  cozy: {
+    wall: '#4a3a30',
+    wallAccent: '#3d3028',
+    floor: '#2e241c',
+    ceiling: '#1f1812',
+    accent: '#b8956a',
+    light: '#ffe4c4',
+    trim: '#8f7358',
+    plaque: '#2b221b',
+    fogNear: 11,
+    fogFar: 26,
+  },
 }
 
 interface GallerySceneProps {
   artworks: Artwork[]
   theme: string
+  selectedId?: string | null
   onSelect: (artwork: Artwork | null) => void
   onFatalError?: (error: Error) => void
 }
 
 function Room({ theme }: { theme: Theme }) {
   const { w, d, h } = ROOM
+  const isNeon = theme.accent === '#00ffcc'
+
   return (
     <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
         <planeGeometry args={[w, d]} />
-        <meshStandardMaterial color={theme.floor} roughness={0.9} />
+        <meshStandardMaterial color={theme.floor} roughness={0.55} metalness={0.08} />
       </mesh>
-      <mesh position={[0, h / 2, -d / 2]}>
-        <boxGeometry args={[w, h, 0.2]} />
-        <meshStandardMaterial color={theme.wall} />
+
+      {/* Floor inlay */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
+        <planeGeometry args={[w * 0.55, d * 0.42]} />
+        <meshStandardMaterial color={theme.wallAccent} roughness={0.75} metalness={0.04} />
       </mesh>
-      <mesh position={[0, h / 2, d / 2]}>
-        <boxGeometry args={[w, h, 0.2]} />
-        <meshStandardMaterial color={theme.wall} />
-      </mesh>
-      <mesh position={[-w / 2, h / 2, 0]}>
-        <boxGeometry args={[0.2, h, d]} />
-        <meshStandardMaterial color={theme.wall} />
-      </mesh>
-      <mesh position={[w / 2, h / 2, 0]}>
-        <boxGeometry args={[0.2, h, d]} />
-        <meshStandardMaterial color={theme.wall} />
-      </mesh>
+
+      {[
+        [0, h / 2, -d / 2, w, h, 0.24],
+        [0, h / 2, d / 2, w, h, 0.24],
+        [-w / 2, h / 2, 0, 0.24, h, d],
+        [w / 2, h / 2, 0, 0.24, h, d],
+      ].map(([x, y, z, width, height, depth], index) => (
+        <group key={index} position={[x, y, z]}>
+          <mesh>
+            <boxGeometry args={[width, height, depth]} />
+            <meshStandardMaterial color={theme.wall} roughness={0.92} />
+          </mesh>
+          <mesh position={[0, -height / 2 + 0.12, depth > 0.3 ? depth / 2 + 0.02 : 0]}>
+            <boxGeometry args={[width * 0.98, 0.24, depth > 0.3 ? 0.08 : width * 0.98]} />
+            <meshStandardMaterial color={theme.trim} roughness={0.45} metalness={0.2} />
+          </mesh>
+          <mesh position={[0, height / 2 - 0.1, depth > 0.3 ? depth / 2 + 0.02 : 0]}>
+            <boxGeometry args={[width * 0.98, 0.18, depth > 0.3 ? 0.06 : width * 0.98]} />
+            <meshStandardMaterial color={theme.trim} roughness={0.35} metalness={0.25} />
+          </mesh>
+        </group>
+      ))}
+
       <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, h, 0]}>
         <planeGeometry args={[w, d]} />
-        <meshStandardMaterial color={theme.ceiling} side={THREE.DoubleSide} />
+        <meshStandardMaterial color={theme.ceiling} side={THREE.DoubleSide} roughness={0.95} />
       </mesh>
-      <pointLight position={[0, h - 0.5, 0]} intensity={18} distance={24} color={theme.light} />
-      <pointLight position={[-6, h - 1, 0]} intensity={10} distance={14} color={theme.light} />
-      <pointLight position={[6, h - 1, 0]} intensity={10} distance={14} color={theme.light} />
+
+      {/* Ceiling coffers */}
+      {[-4, 0, 4].map((x) => (
+        <mesh key={x} rotation={[Math.PI / 2, 0, 0]} position={[x, h - 0.05, 0]}>
+          <planeGeometry args={[3.2, d * 0.7]} />
+          <meshStandardMaterial color={theme.wallAccent} roughness={0.9} />
+        </mesh>
+      ))}
+
+      {/* Ceiling lights */}
+      {[-6, 0, 6].map((x) => (
+        <group key={x} position={[x, h - 0.35, 0]}>
+          <mesh>
+            <cylinderGeometry args={[0.35, 0.5, 0.18, 24]} />
+            <meshStandardMaterial color={theme.trim} roughness={0.25} metalness={0.65} emissive={theme.light} emissiveIntensity={isNeon ? 0.35 : 0.12} />
+          </mesh>
+          <pointLight position={[0, -0.2, 0]} intensity={isNeon ? 14 : 10} distance={16} color={theme.light} />
+        </group>
+      ))}
+
+      {isNeon && (
+        <>
+          <mesh position={[0, 0.03, -d / 2 + 0.2]}>
+            <boxGeometry args={[w * 0.8, 0.04, 0.08]} />
+            <meshStandardMaterial color={theme.accent} emissive={theme.accent} emissiveIntensity={1.2} />
+          </mesh>
+          <mesh position={[0, 0.03, d / 2 - 0.2]}>
+            <boxGeometry args={[w * 0.8, 0.04, 0.08]} />
+            <meshStandardMaterial color={theme.accent} emissive={theme.accent} emissiveIntensity={1.2} />
+          </mesh>
+        </>
+      )}
     </group>
   )
 }
@@ -97,48 +224,95 @@ function useArtworkTexture(url: string) {
     }
   }, [url])
 
-  useEffect(() => {
-    return () => {
-      texture?.dispose()
-    }
-  }, [texture])
+  useEffect(() => () => texture?.dispose(), [texture])
 
   return texture
 }
 
-function WallArt({ artwork, position, rotation }: { artwork: Artwork; position: [number, number, number]; rotation: [number, number, number] }) {
+function WallArt({
+  artwork,
+  position,
+  rotation,
+  theme,
+  selected,
+}: {
+  artwork: Artwork
+  position: [number, number, number]
+  rotation: [number, number, number]
+  theme: Theme
+  selected: boolean
+}) {
   const texture = useArtworkTexture(artwork.imageUrl)
   const aspect = artwork.width / artwork.height
-  const h = 1.5
-  const w = Math.min(h * aspect, 2.2)
+  const h = 1.55
+  const w = Math.min(h * aspect, 2.3)
   const hasCrown = isBoostActive(artwork.vipBoosts?.crown)
   const hasSpotlight = isBoostActive(artwork.vipBoosts?.spotlight)
+  const frameColor = hasCrown ? '#b89452' : '#6f5842'
+  const frameMetalness = hasCrown ? 0.55 : 0.25
 
   return (
     <group position={position} rotation={rotation}>
       {hasSpotlight && (
         <spotLight
-          position={[0, 1.2, 0.8]}
-          angle={0.5}
-          penumbra={0.6}
-          intensity={4}
-          distance={6}
+          position={[0, 1.35, 0.75]}
+          angle={0.42}
+          penumbra={0.75}
+          intensity={selected ? 7 : 5}
+          distance={7}
           color="#fff8e7"
           castShadow={false}
         />
       )}
-      <mesh position={[0, 0, -0.04]}>
-        <boxGeometry args={[w + 0.12, h + 0.12, 0.06]} />
+
+      {/* Picture light */}
+      <mesh position={[0, h / 2 + 0.22, 0.12]} rotation={[Math.PI / 2.2, 0, 0]}>
+        <boxGeometry args={[0.42, 0.08, 0.16]} />
         <meshStandardMaterial
-          color={hasCrown ? '#9a7b4f' : '#6b5a45'}
-          roughness={0.7}
-          emissive={hasSpotlight ? '#332200' : '#000000'}
+          color={theme.trim}
+          roughness={0.2}
+          metalness={0.7}
+          emissive={selected ? theme.accent : '#000000'}
+          emissiveIntensity={selected ? 0.45 : 0}
         />
       </mesh>
-      <mesh position={[0, 0, 0.01]} userData={{ artwork }}>
+
+      {/* Outer frame */}
+      <mesh position={[0, 0, -0.05]}>
+        <boxGeometry args={[w + 0.22, h + 0.22, 0.08]} />
+        <meshStandardMaterial
+          color={frameColor}
+          roughness={0.35}
+          metalness={frameMetalness}
+          emissive={selected ? theme.accent : '#000000'}
+          emissiveIntensity={selected ? 0.18 : 0}
+        />
+      </mesh>
+
+      {/* Mat */}
+      <mesh position={[0, 0, -0.01]}>
+        <boxGeometry args={[w + 0.08, h + 0.08, 0.02]} />
+        <meshStandardMaterial color="#f3efe8" roughness={0.95} />
+      </mesh>
+
+      {/* Canvas */}
+      <mesh position={[0, 0, 0.015]} userData={{ artwork }}>
         <planeGeometry args={[w, h]} />
         <meshBasicMaterial map={texture ?? undefined} color={texture ? '#ffffff' : '#4a4038'} />
       </mesh>
+
+      {/* Plaque */}
+      <mesh position={[0, -h / 2 - 0.28, 0.02]}>
+        <boxGeometry args={[Math.min(w + 0.1, 1.6), 0.18, 0.04]} />
+        <meshStandardMaterial color={theme.plaque} roughness={0.8} metalness={0.05} />
+      </mesh>
+
+      {hasCrown && (
+        <mesh position={[0, h / 2 + 0.34, 0.06]}>
+          <sphereGeometry args={[0.08, 16, 16]} />
+          <meshStandardMaterial color="#f0c85a" emissive="#7a5a12" emissiveIntensity={0.6} metalness={0.8} roughness={0.2} />
+        </mesh>
+      )}
     </group>
   )
 }
@@ -151,9 +325,9 @@ function getPositions(artworks: Artwork[]) {
   })
   const items = sorted.slice(0, 10)
   const positions: { artwork: Artwork; position: [number, number, number]; rotation: [number, number, number] }[] = []
-  const y = 1.8
-  const hw = ROOM.w / 2 - 0.3
-  const hd = ROOM.d / 2 - 0.3
+  const y = 1.85
+  const hw = ROOM.w / 2 - 0.35
+  const hd = ROOM.d / 2 - 0.35
 
   items.slice(0, 4).forEach((a, i) => {
     positions.push({ artwork: a, position: [-7 + i * 4.5, y, -hd], rotation: [0, 0, 0] })
@@ -300,20 +474,28 @@ function MouseLook() {
   return null
 }
 
-function SceneInner({ artworks, theme, onSelect }: GallerySceneProps) {
+function SceneInner({ artworks, theme, selectedId, onSelect }: GallerySceneProps) {
   const t = THEMES[theme] ?? THEMES.classic
   const positions = useMemo(() => getPositions(artworks), [artworks])
   const isCoarsePointer = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
 
   return (
     <>
-      <ambientLight intensity={0.65} />
-      <hemisphereLight args={[t.light, t.floor, 0.35]} />
-      <fog attach="fog" args={[t.ceiling, 10, 24]} />
+      <ambientLight intensity={0.42} />
+      <hemisphereLight args={[t.light, t.floor, 0.28]} />
+      <directionalLight position={[0, 6, 4]} intensity={0.35} color={t.light} />
+      <fog attach="fog" args={[t.ceiling, t.fogNear, t.fogFar]} />
       <color attach="background" args={[t.ceiling]} />
       <Room theme={t} />
       {positions.map(({ artwork, position, rotation }) => (
-        <WallArt key={artwork.id} artwork={artwork} position={position} rotation={rotation} />
+        <WallArt
+          key={artwork.id}
+          artwork={artwork}
+          position={position}
+          rotation={rotation}
+          theme={t}
+          selected={selectedId === artwork.id}
+        />
       ))}
       <Controller onHover={onSelect} />
       {isCoarsePointer ? <TouchLook /> : <MouseLook />}
@@ -321,11 +503,11 @@ function SceneInner({ artworks, theme, onSelect }: GallerySceneProps) {
   )
 }
 
-export default function CategoryGalleryScene({ artworks, theme, onSelect, onFatalError }: GallerySceneProps) {
+export default function CategoryGalleryScene({ artworks, theme, selectedId, onSelect, onFatalError }: GallerySceneProps) {
   return (
     <Canvas
       dpr={[1, Math.min(window.devicePixelRatio || 1, 1.5)]}
-      camera={{ fov: 70, near: 0.1, far: 50, position: [0, EYE_H, 5] }}
+      camera={{ fov: 68, near: 0.1, far: 50, position: [0, EYE_H, 5] }}
       gl={{
         antialias: false,
         powerPreference: 'default',
@@ -339,7 +521,7 @@ export default function CategoryGalleryScene({ artworks, theme, onSelect, onFata
         }
       }}
     >
-      <SceneInner artworks={artworks} theme={theme} onSelect={onSelect} onFatalError={onFatalError} />
+      <SceneInner artworks={artworks} theme={theme} selectedId={selectedId} onSelect={onSelect} onFatalError={onFatalError} />
     </Canvas>
   )
 }
@@ -355,4 +537,17 @@ export function getThemeForCategory(categoryId: CategoryId): string {
     textile: 'cozy',
   }
   return map[categoryId] ?? 'classic'
+}
+
+export function getThemeLabel(theme: string): string {
+  const labels: Record<string, string> = {
+    classic: 'Классический зал',
+    marble: 'Мраморный зал',
+    modern: 'Современная экспозиция',
+    minimal: 'Минималистичная галерея',
+    neon: 'Неоновый павильон',
+    warm: 'Тёплый интерьер',
+    cozy: 'Уютная мастерская',
+  }
+  return labels[theme] ?? 'Галерея'
 }
