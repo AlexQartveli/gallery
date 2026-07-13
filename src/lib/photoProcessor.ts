@@ -216,10 +216,10 @@ async function processImageFromExtracted(extracted: ExtractResult, category?: st
 
   const tips =
     extracted.method === 'perspective'
-      ? ['Фон и рамка убраны, перспектива выровнена']
+      ? ['Полотно выбрано целиком, перспектива выровнена, пропорции сохранены']
       : extracted.cropped
-        ? ['Фон и родная рамка убраны']
-        : ['Рамка Geo Gallery добавлена']
+        ? ['Полотно выбрано целиком, фон и старая рамка убраны, пропорции сохранены']
+        : ['Полотно оставлено целиком в исходных пропорциях']
 
   return {
     image,
@@ -255,6 +255,10 @@ export interface ProcessPhotoReport {
   }
   crop?: CropRect & { cropped: boolean }
   extractMethod?: ExtractMethod
+  artwork?: {
+    width: number
+    height: number
+  }
 }
 
 export async function processPhotoDetailed(file: File, category?: string): Promise<ProcessPhotoReport> {
@@ -279,6 +283,10 @@ export async function processPhotoDetailed(file: File, category?: string): Promi
     original,
     crop: { ...cropRect, cropped: extracted.cropped },
     extractMethod: extracted.method,
+    artwork: {
+      width: extracted.canvas.width,
+      height: extracted.canvas.height,
+    },
   }
 }
 

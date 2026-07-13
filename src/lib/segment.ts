@@ -151,37 +151,72 @@ function verticalContourScore(
   return percentile(values, 0.42) + percentile(values, 0.72) * 0.35 + strongShare * 12
 }
 
-function chooseInnerContour(profile: Array<{ pos: number; score: number }>, direction: 1 | -1): number | null {
-  if (!profile.length) return null
+interface ContourCandidate {
+  pos: number
+  score: number
+  margin: number
+}
+
+function contourCandidates(
+  profile: Array<{ pos: number; score: number }>,
+  outerEdge: number,
+  direction: 1 | -1,
+): ContourCandidate[] {
+  if (profile.length < 3) return []
   const scores = profile.map((p) => p.score)
   const maxScore = Math.max(...scores)
   const baseline = median(scores)
-  if (maxScore < 10 || maxScore < baseline * 1.25) return null
+  if (maxScore < 9 || maxScore < baseline * 1.2) return []
 
-  const threshold = Math.max(maxScore * 0.52, baseline + 3.5)
-  const candidates = profile.filter((p) => p.score >= threshold)
-  if (!candidates.length) return null
+  const threshold = Math.max(maxScore * 0.48, baseline + 3)
+  const candidates: ContourCandidate[] = []
 
-  // A frame has several parallel contours. The deepest reliable contour is
-  // the edge between the old frame/mat and the actual painted surface.
-  return candidates.reduce((best, item) =>
-    direction === 1
-      ? (item.pos > best.pos ? item : best)
-      : (item.pos < best.pos ? item : best),
-  ).pos
+  for (let i = 1; i < profile.length - 1; i++) {
+    const item = profile[i]
+    if (
+      item.score >= threshold &&
+      item.score >= profile[i - 1].score &&
+      item.score >= profile[i + 1].score
+    ) {
+      candidates.push({
+        ...item,
+        margin: direction === 1 ? item.pos - outerEdge : outerEdge - item.pos,
+      })
+    }
+  }
+
+  return candidates
 }
 
-function mirrorMissingSide(start: number | null, end: number | null, outerStart: number, outerEnd: number) {
-  if (start == null && end == null) return { start: outerStart, end: outerEnd }
-  if (start == null && end != null) {
-    const margin = outerEnd - end
-    return { start: outerStart + margin, end }
+function choosePairedContours(
+  startProfile: Array<{ pos: number; score: number }>,
+  endProfile: Array<{ pos: number; score: number }>,
+  outerStart: number,
+  outerEnd: number,
+): { start: number; end: number } {
+  const starts = contourCandidates(startProfile, outerStart, 1)
+  const ends = contourCandidates(endProfile, outerEnd, -1)
+  if (!starts.length || !ends.length) return { start: outerStart, end: outerEnd }
+
+  let best: { start: ContourCandidate; end: ContourCandidate; rank: number } | null = null
+
+  for (const start of starts) {
+    for (const end of ends) {
+      const maxMargin = Math.max(start.margin, end.margin, 1)
+      const mismatch = Math.abs(start.margin - end.margin) / maxMargin
+      if (mismatch > 0.32) continue
+
+      // Matching contours on opposite sides are frame boundaries. Prefer the
+      // deepest matching pair; unrelated details inside a painting rarely
+      // occur at the same distance from both opposite edges.
+      const depth = (start.margin + end.margin) / 2
+      const rank = depth * 2 + start.score + end.score - mismatch * 40
+      if (!best || rank > best.rank) best = { start, end, rank }
+    }
   }
-  if (start != null && end == null) {
-    const margin = start - outerStart
-    return { start, end: outerEnd - margin }
-  }
-  return { start: start!, end: end! }
+
+  if (!best) return { start: outerStart, end: outerEnd }
+  return { start: best.start.pos, end: best.end.pos }
 }
 
 export function detectPaintingBounds(data: Uint8ClampedArray, w: number, h: number, outer: Bounds): Bounds {
@@ -219,18 +254,8 @@ export function detectPaintingBounds(data: Uint8ClampedArray, w: number, h: numb
     rightProfile.push({ pos: x, score: verticalContourScore(data, w, x, y0, y1) })
   }
 
-  const vertical = mirrorMissingSide(
-    chooseInnerContour(topProfile, 1),
-    chooseInnerContour(bottomProfile, -1),
-    outer.top,
-    outer.bottom,
-  )
-  const horizontal = mirrorMissingSide(
-    chooseInnerContour(leftProfile, 1),
-    chooseInnerContour(rightProfile, -1),
-    outer.left,
-    outer.right,
-  )
+  const vertical = choosePairedContours(topProfile, bottomProfile, outer.top, outer.bottom)
+  const horizontal = choosePairedContours(leftProfile, rightProfile, outer.left, outer.right)
 
   let top = vertical.start
   let bottom = vertical.end
@@ -241,13 +266,13 @@ export function detectPaintingBounds(data: Uint8ClampedArray, w: number, h: numb
   const minH = outerH * 0.48
   if (right - left < minW || bottom - top < minH) return outer
 
-  // Move a few pixels into the canvas so antialiased remnants of the old
-  // frame cannot survive the resize.
-  const inset = Math.max(2, Math.round(Math.min(right - left, bottom - top) * 0.006))
-  top += inset
-  bottom -= inset
-  left += inset
-  right -= inset
+  // Keep a tiny safety margin outside the detected canvas. It is preferable
+  // to retain one edge pixel from the old mat than to lose painted content.
+  const safety = Math.max(1, Math.round(Math.min(right - left, bottom - top) * 0.002))
+  top = Math.max(outer.top, top - safety)
+  bottom = Math.min(outer.bottom, bottom + safety)
+  left = Math.max(outer.left, left - safety)
+  right = Math.min(outer.right, right + safety)
 
   if (right <= left || bottom <= top || w < 1 || h < 1) return outer
   return { top, bottom, left, right }

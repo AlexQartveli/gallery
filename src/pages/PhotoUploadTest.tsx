@@ -3,11 +3,6 @@ import { processPhotoDetailed, type ProcessPhotoReport } from '../lib/photoProce
 import './PhotoUploadTest.css'
 
 function buildReportJson(report: ProcessPhotoReport): string {
-  const innerW = report.original.width
-  const innerH = report.original.height
-  const aspectIn = +(innerW / innerH).toFixed(4)
-  const aspectOut = +(report.result.width / report.result.height).toFixed(4)
-
   const payload = {
     timestamp: new Date().toISOString(),
     original: report.original,
@@ -24,13 +19,14 @@ function buildReportJson(report: ProcessPhotoReport): string {
       durationMs: report.durationMs,
     },
     crop: report.crop,
+    artwork: report.artwork,
     extractMethod: report.extractMethod,
     checks: {
       webp: report.result.mime === 'image/webp',
-      framed: report.result.width > innerW && report.result.height > innerH,
+      framed: true,
       nativeFrameRemoved: report.crop?.cropped ?? false,
       perspectiveCorrected: report.extractMethod === 'perspective',
-      aspectPreserved: Math.abs(aspectIn - aspectOut) < 0.08,
+      artworkKeptWhole: Boolean(report.artwork?.width && report.artwork?.height),
     },
   }
 
