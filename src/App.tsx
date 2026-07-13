@@ -10,13 +10,13 @@ import Artists from './pages/Artists'
 import ArtistProfile from './pages/ArtistProfile'
 import ArtworkDetail from './pages/ArtworkDetail'
 import Pricing from './pages/Pricing'
-import Sell from './pages/Sell'
 import PlacementCheckout from './pages/PlacementCheckout'
 import Promote from './pages/Promote'
 import PurchaseCheckout from './pages/PurchaseCheckout'
-import PhotoUploadTest from './pages/PhotoUploadTest'
 
 const CategoryGallery = lazy(() => import('./pages/CategoryGallery'))
+const Sell = lazy(() => import('./pages/Sell'))
+const PhotoUploadTest = lazy(() => import('./pages/PhotoUploadTest'))
 
 export default function App() {
   return (
@@ -38,11 +38,25 @@ export default function App() {
           <Route path="artist/:id" element={<ArtistProfile />} />
           <Route path="artwork/:id" element={<ArtworkDetail />} />
           <Route path="pricing" element={<Pricing />} />
-          <Route path="sell" element={<Sell />} />
+          <Route
+            path="sell"
+            element={
+              <Suspense fallback={<PageLoader label="Загрузка…" />}>
+                <Sell />
+              </Suspense>
+            }
+          />
           <Route path="place-checkout" element={<PlacementCheckout />} />
           <Route path="promote/:id" element={<Promote />} />
           <Route path="checkout/:id" element={<PurchaseCheckout />} />
-          <Route path="test-upload" element={<PhotoUploadTest />} />
+          <Route
+            path="test-upload"
+            element={
+              <Suspense fallback={<PageLoader label="Загрузка…" />}>
+                <PhotoUploadTest />
+              </Suspense>
+            }
+          />
         </Route>
       </Routes>
     </ErrorBoundary>

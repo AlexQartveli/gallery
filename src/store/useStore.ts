@@ -19,6 +19,30 @@ interface CurrentUser {
   tariffExpiresAt: string
 }
 
+function sanitizePersistedState(persisted: unknown, current: AppState): AppState {
+  if (!persisted || typeof persisted !== 'object') return current
+
+  const saved = persisted as Partial<AppState>
+  const artists = Array.isArray(saved.artists) && saved.artists.length > 0 ? saved.artists : current.artists
+  const artworks = Array.isArray(saved.artworks) && saved.artworks.length > 0 ? saved.artworks : current.artworks
+
+  return {
+    ...current,
+    artists,
+    artworks,
+    placementOrders: Array.isArray(saved.placementOrders) ? saved.placementOrders : current.placementOrders,
+    purchaseOrders: Array.isArray(saved.purchaseOrders) ? saved.purchaseOrders : current.purchaseOrders,
+    boostOrders: Array.isArray(saved.boostOrders) ? saved.boostOrders : current.boostOrders,
+    currentUser:
+      saved.currentUser &&
+      typeof saved.currentUser === 'object' &&
+      typeof saved.currentUser.artistId === 'string' &&
+      typeof saved.currentUser.tariffId === 'string'
+        ? saved.currentUser
+        : current.currentUser,
+  }
+}
+
 interface AppState {
   artists: Artist[]
   artworks: Artwork[]
@@ -228,10 +252,12 @@ export const useStore = create<AppState>()(
       },
     }),
     {
-      name: 'geo-gallery-store-v3',
+      name: 'geo-gallery-store-v4',
+      merge: (persisted, current) => sanitizePersistedState(persisted, current),
       onRehydrateStorage: () => (_state, error) => {
         if (error) {
           try {
+            localStorage.removeItem('geo-gallery-store-v4')
             localStorage.removeItem('geo-gallery-store-v3')
           } catch {
             // ignore storage errors

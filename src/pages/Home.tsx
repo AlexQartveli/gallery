@@ -7,8 +7,8 @@ import ArtistCard from '../components/ArtistCard'
 import './Home.css'
 
 export default function Home() {
-  const artworks = useStore((s) => s.artworks)
-  const artists = useStore((s) => s.artists)
+  const artworks = useStore((s) => s.artworks) ?? []
+  const artists = useStore((s) => s.artists) ?? []
   const featured = artworks.filter((a) => a.featured && a.status === 'active').slice(0, 6)
   const featuredArtists = artists.filter((a) => a.featured).slice(0, 3)
 

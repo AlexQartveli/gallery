@@ -72,9 +72,15 @@ export function getTariff(id: string) {
 }
 
 export function formatPrice(price: number): string {
-  return new Intl.NumberFormat('ka-GE', {
-    style: 'currency',
-    currency: 'GEL',
-    maximumFractionDigits: 0,
-  }).format(price)
+  const value = Number.isFinite(price) ? price : 0
+
+  try {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'GEL',
+      maximumFractionDigits: 0,
+    }).format(value)
+  } catch {
+    return `${Math.round(value).toLocaleString('ru-RU')} ₾`
+  }
 }
