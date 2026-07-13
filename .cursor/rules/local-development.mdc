@@ -1,0 +1,75 @@
+---
+description: Локальная разработка Geo Gallery — клон, хостинг, деплой
+globs:
+alwaysApply: true
+---
+
+# Geo Gallery — локальный агент
+
+Проект: маркетплейс искусства с 3D-галереями. Production: http://geogallery.online
+
+## Быстрый старт на компьютере пользователя
+
+```bash
+git clone https://github.com/AlexQartveli/gallery.git
+cd gallery
+bash scripts/local-setup.sh
+npm run dev
+```
+
+Открыть: http://localhost:5173  
+Тест обработки фото: http://localhost:5173/test-upload
+
+## Скачать с хостинга на локальный компьютер
+
+На Beget лежит **собранный фронтенд** (`public_html`), не исходники TypeScript.
+
+```bash
+# Вариант 1: SSH-ключ (рекомендуется) — добавить ключ в панели Beget
+npm run pull:host
+
+# Вариант 2: пароль в .env
+cp .env.example .env
+# заполнить SSHPASS=...
+export $(grep -v '^#' .env | xargs) && npm run pull:host
+```
+
+Файлы появятся в `host-mirror/`. Папка в `.gitignore`.
+
+Исходники для разработки — только из Git:
+
+```bash
+git fetch origin
+git checkout cursor/geo-gallery-v2-8327   # актуальная ветка с 3D-галереей
+```
+
+## Деплой на хостинг
+
+```bash
+npm run build
+npm run deploy
+```
+
+Требуется SSH к `infoprfo_gal@infoprfo.beget.tech`.
+
+## Стек
+
+- React 18 + Vite + TypeScript
+- Three.js / @react-three/fiber — 3D галереи в `src/components/Gallery3D/`
+- Zustand — состояние
+- Обработка фото в браузере: `src/lib/photoProcessor.ts`, `src/lib/segment.ts`
+
+## Важные пути
+
+| Путь | Назначение |
+|------|------------|
+| `src/components/Gallery3D/` | 3D-коридоры и картины на стенах |
+| `src/lib/photoProcessor.ts` | Обрезка фона, рамка, watermark |
+| `scripts/deploy.sh` | Заливка `dist/` на Beget |
+| `scripts/pull-from-host.sh` | Скачивание production в `host-mirror/` |
+
+## Правила для агента
+
+- Менять код в `src/`, не в `host-mirror/` (это зеркало production).
+- После правок: `npm run build`, при необходимости `npm run deploy`.
+- Не коммитить `.env`, `node_modules/`, `host-mirror/`, `dist/`.

@@ -1,0 +1,20 @@
+.page-loader {
+  min-height: 50vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  color: var(--text-muted);
+}
+
+.page-loader__mark {
+  color: var(--accent);
+  font-size: 1.5rem;
+  animation: page-loader-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes page-loader-pulse {
+  0%, 100% { opacity: 0.4; transform: scale(0.95); }
+  50% { opacity: 1; transform: scale(1); }
+}

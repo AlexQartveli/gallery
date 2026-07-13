@@ -1,11 +1,16 @@
 # Dependencies
 node_modules/
 dist/
+host-mirror/
 
 # Build
 *.local
-dist/
 tsconfig.tsbuildinfo
+
+# Env
+.env
+.env.*
+!.env.example
 
 # Editor
 .vscode/

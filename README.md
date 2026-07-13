@@ -1,34 +1,39 @@
-# ArtVault — Галерея картин
+# Geo Gallery — Маркетплейс искусства
 
-Маркетплейс картин с онлайн 3D-галереей.
-
-## Возможности
-
-- **Доска объявлений** — каталог картин от художников с фильтрами и сортировкой
-- **3D галерея** — виртуальный музей, по которому можно ходить
-  - ПК: управление WASD + мышь
-  - Мобильные: джойстик + свайп для обзора
-- **Продажа** — художники размещают свои работы
-- **Покупка** — сайт принимает оплату, выкупает картину у автора и доставляет покупателю
-
-## Запуск
+## Локально на компьютере
 
 ```bash
-npm install
+git clone https://github.com/AlexQartveli/gallery.git
+cd gallery
+npm run setup
 npm run dev
 ```
 
-Откройте http://localhost:5173
+Сайт: http://localhost:5173  
+Тест фото: http://localhost:5173/test-upload
 
-## Сборка
+## Скачать production с хостинга
+
+На Beget лежит собранный сайт, не исходники. Скачать на комп:
 
 ```bash
-npm run build
-npm run preview
+cp .env.example .env
+# при необходимости: SSHPASS=пароль_beget
+npm run pull:host
 ```
 
-## Стек
+Файлы попадут в `host-mirror/`. Для разработки используйте исходники из git.
 
-- React + TypeScript + Vite
-- Three.js / React Three Fiber — 3D галерея
-- Zustand — состояние приложения
+SSH без пароля: добавьте свой публичный ключ в панели Beget → SSH.
+
+## Деплой
+
+```bash
+npm run deploy
+```
+
+## Обработка фото
+
+В браузере (canvas): сжатие в WebP, деревянная рамка, обрезка фона. Серверный API не используется.
+
+Тест: **http://localhost:5173/test-upload** или **http://geogallery.online/test-upload**

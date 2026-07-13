@@ -1,0 +1,77 @@
+.gallery-fallback {
+  min-height: calc(100vh - 64px);
+  padding: 2rem 0 3rem;
+}
+
+.gallery-fallback__head {
+  max-width: 720px;
+  margin: 0 auto 2rem;
+  padding: 0 1.5rem;
+}
+
+.gallery-fallback__back {
+  display: inline-block;
+  margin-bottom: 1rem;
+  color: var(--text-muted);
+}
+
+.gallery-fallback__back:hover {
+  color: var(--accent);
+}
+
+.gallery-fallback__head h1 {
+  font-family: var(--font-serif);
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.gallery-fallback__head p {
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+}
+
+.gallery-fallback__empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 3rem 1.5rem;
+}
+
+.gallery-fallback__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.gallery-fallback__card {
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.2s;
+}
+
+.gallery-fallback__card:hover {
+  border-color: var(--accent);
+}
+
+.gallery-fallback__media {
+  aspect-ratio: 4/5;
+}
+
+.gallery-fallback__card div {
+  padding: 0.875rem 1rem 1rem;
+}
+
+.gallery-fallback__card h3 {
+  font-size: 0.9375rem;
+  margin-bottom: 0.25rem;
+}
+
+.gallery-fallback__card p {
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.875rem;
+}

@@ -2,11 +2,13 @@
   position: fixed;
   bottom: 24px;
   left: 24px;
-  width: 88px;
-  height: 88px;
+  width: 92px;
+  height: 92px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
-  border: 2px solid rgba(255, 255, 255, 0.15);
+  background: rgba(10, 9, 8, 0.55);
+  border: 1px solid rgba(201, 169, 98, 0.25);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
   z-index: 200;
   touch-action: none;
   user-select: none;
@@ -16,23 +18,23 @@
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
-  background: rgba(201, 169, 98, 0.6);
-  border: 2px solid rgba(201, 169, 98, 0.9);
+  background: radial-gradient(circle at 30% 30%, rgba(219, 190, 116, 0.95), rgba(201, 169, 98, 0.75));
+  border: 2px solid rgba(255, 240, 205, 0.65);
   transform: translate(-50%, -50%);
   pointer-events: none;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
 }
 
 .look-zone {
   position: fixed;
   top: 64px;
   right: 0;
-  bottom: 0;
+  bottom: 180px;
   left: 120px;
-  z-index: 150;
+  z-index: 120;
   touch-action: none;
 }
 
@@ -45,14 +47,14 @@
 
 @media (max-width: 768px) {
   .joystick {
-    width: 72px;
-    height: 72px;
+    width: 78px;
+    height: 78px;
     bottom: 20px;
     left: 16px;
   }
 
   .joystick__stick {
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
   }
 }

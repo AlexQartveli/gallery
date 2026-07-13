@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" role="img" aria-label="Geo Gallery">
+  <defs>
+    <linearGradient id="geo-gold-icon" x1="6" y1="4" x2="42" y2="44" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#dbbe74"/>
+      <stop offset="0.5" stop-color="#c9a962"/>
+      <stop offset="1" stop-color="#a88b4a"/>
+    </linearGradient>
+  </defs>
+  <path d="M24 4 L44 24 L24 44 L4 24 Z" fill="url(#geo-gold-icon)"/>
+  <path d="M24 11 L37 24 L24 37 L11 24 Z" fill="#0f0e0d" fill-opacity="0.35"/>
+  <path d="M24 4 L44 24 L24 44 L4 24 Z" stroke="#f5f0eb" stroke-opacity="0.2" stroke-width="0.75"/>
+  <path d="M24 4 L24 44" stroke="#f5f0eb" stroke-opacity="0.12" stroke-width="0.5"/>
+  <path d="M4 24 L44 24" stroke="#f5f0eb" stroke-opacity="0.12" stroke-width="0.5"/>
+  <circle cx="24" cy="24" r="3" fill="#f5f0eb" fill-opacity="0.9"/>
+</svg>

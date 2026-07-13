@@ -1,0 +1,57 @@
+.place-checkout { padding: 3rem 0 4rem; }
+
+.place-checkout__inner { max-width: 1000px; }
+
+.place-checkout h1 { font-family: var(--font-serif); font-size: 2.5rem; margin-bottom: 0.5rem; }
+
+.place-checkout__artist { color: var(--text-muted); margin-bottom: 2rem; }
+
+.place-checkout__grid { display: grid; grid-template-columns: 1fr 300px; gap: 2rem; align-items: start; }
+
+.place-checkout__form { padding: 1.5rem; }
+
+.place-checkout__form h2 { font-family: var(--font-serif); font-size: 1.25rem; margin-bottom: 1rem; }
+
+.place-checkout__tariffs {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.place-checkout__pay { width: 100%; padding: 1rem; margin-top: 1rem; }
+
+.place-checkout__note { font-size: 0.75rem; color: var(--text-muted); text-align: center; margin-top: 0.75rem; }
+
+.place-checkout__summary { padding: 1.5rem; position: sticky; top: 80px; }
+
+.place-checkout__summary h3 { font-family: var(--font-serif); font-size: 1.25rem; }
+
+.place-checkout__price { font-size: 1.75rem; font-weight: 700; color: var(--accent); margin: 0.5rem 0; }
+
+.place-checkout__summary ul { list-style: none; margin: 1rem 0; font-size: 0.8125rem; color: var(--text-muted); }
+
+.place-checkout__summary li { padding: 0.25rem 0; padding-left: 1rem; position: relative; }
+
+.place-checkout__summary li::before { content: '✓'; position: absolute; left: 0; color: var(--success); }
+
+.place-checkout__success { max-width: 480px; margin: 2rem auto; padding: 3rem 2rem; text-align: center; }
+
+.place-checkout__icon {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: rgba(90, 158, 111, 0.15); color: var(--success);
+  font-size: 2rem; display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 1.5rem;
+}
+
+.place-checkout__success h1 { font-family: var(--font-serif); font-size: 1.75rem; }
+
+.place-checkout__desc { color: var(--text-muted); margin: 1.5rem 0; }
+
+.place-checkout__actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+
+@media (max-width: 768px) {
+  .place-checkout__grid { grid-template-columns: 1fr; }
+  .place-checkout__tariffs { grid-template-columns: 1fr; }
+  .place-checkout__summary { position: static; order: -1; }
+}
