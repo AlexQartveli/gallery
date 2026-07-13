@@ -8,7 +8,8 @@ import './ArtistProfile.css'
 export default function ArtistProfile() {
   const { id } = useParams<{ id: string }>()
   const artist = useStore((s) => s.getArtist(id ?? ''))
-  const works = useStore((s) => s.getArtistWorks(id ?? ''))
+  const artworks = useStore((s) => s.artworks)
+  const works = artworks.filter((work) => work.artistId === (id ?? '') && work.status !== 'draft')
   const tariff = getTariff(artist?.tariffId ?? '')
 
   if (!artist) {

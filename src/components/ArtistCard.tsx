@@ -10,7 +10,8 @@ interface ArtistCardProps {
 }
 
 export default function ArtistCard({ artist, showWorks = true }: ArtistCardProps) {
-  const works = useStore((s) => s.getArtistWorks(artist.id))
+  const artworks = useStore((s) => s.artworks)
+  const works = artworks.filter((work) => work.artistId === artist.id && work.status !== 'draft')
   const tariff = getTariff(artist.tariffId)
   const preview = works.filter((w) => w.status === 'active').slice(0, 4)
 

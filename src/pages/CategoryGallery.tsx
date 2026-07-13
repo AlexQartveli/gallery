@@ -16,7 +16,15 @@ import './CategoryGallery.css'
 export default function CategoryGallery() {
   const { category } = useParams<{ category: string }>()
   const cat = getCategory(category as CategoryId)
-  const artworks = useStore((s) => s.getCategoryWorks(category ?? ''))
+  const allArtworks = useStore((s) => s.artworks)
+  const artworks = allArtworks
+    .filter((artwork) => artwork.category === (category ?? '') && artwork.status === 'active')
+    .sort((a, b) => {
+      const aVip = a.vipBoosts?.catalog ? 1 : 0
+      const bVip = b.vipBoosts?.catalog ? 1 : 0
+      if (aVip !== bVip) return bVip - aVip
+      return (b.featured ? 1 : 0) - (a.featured ? 1 : 0)
+    })
   const [selected, setSelected] = useState<Artwork | null>(null)
   const [isMobile, setIsMobile] = useState(false)
   const [use3d, setUse3d] = useState<boolean | null>(null)

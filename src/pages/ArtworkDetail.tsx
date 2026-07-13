@@ -9,7 +9,10 @@ export default function ArtworkDetail() {
   const { id } = useParams<{ id: string }>()
   const artwork = useStore((s) => s.getArtwork(id ?? ''))
   const artist = useStore((s) => s.getArtist(artwork?.artistId ?? ''))
-  const related = useStore((s) => s.getArtistWorks(artwork?.artistId ?? '')).filter((w) => w.id !== id).slice(0, 3)
+  const artworks = useStore((s) => s.artworks)
+  const related = artworks
+    .filter((work) => work.artistId === (artwork?.artistId ?? '') && work.status !== 'draft' && work.id !== id)
+    .slice(0, 3)
   const navigate = useNavigate()
 
   if (!artwork) {

@@ -41,6 +41,10 @@ export default class ErrorBoundary extends Component<Props, State> {
         <div className="error-fallback">
           <h2>Что-то пошло не так</h2>
           <p>Попробуйте обновить страницу. Если не помогло — сбросьте сохранённые данные сайта.</p>
+          <details className="error-fallback__details">
+            <summary>Техническая информация</summary>
+            <code>{this.state.error.name}: {this.state.error.message}</code>
+          </details>
           <div className="error-fallback__actions">
             <button type="button" className="btn btn-primary" onClick={() => window.location.reload()}>
               Обновить
