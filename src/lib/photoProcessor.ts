@@ -10,6 +10,7 @@ import {
   boundsToCrop,
   detectBackgroundBounds,
   detectPaintingBounds,
+  trimUniformMargins,
 } from './segment'
 import { drawArtworkWatermark } from './watermark'
 
@@ -86,10 +87,31 @@ function refineCanvas(canvas: HTMLCanvasElement): HTMLCanvasElement {
   const h = canvas.height
   const ctx = canvas.getContext('2d')!
   const data = ctx.getImageData(0, 0, w, h).data
-  const bounds = segmentPaintingBounds(data, w, h)
-  if (bounds.top <= 2 && bounds.left <= 2 && bounds.right >= w - 2 && bounds.bottom >= h - 2) {
+
+  const segmentBounds = segmentPaintingBounds(data, w, h)
+  let bounds = segmentBounds
+
+  const trimmed = trimUniformMargins(data, w, h)
+  const trimmedArea = (trimmed.right - trimmed.left) * (trimmed.bottom - trimmed.top)
+  const segmentArea = (segmentBounds.right - segmentBounds.left) * (segmentBounds.bottom - segmentBounds.top)
+  if (trimmedArea > 0 && trimmedArea <= segmentArea * 0.98) {
+    bounds = {
+      top: Math.max(segmentBounds.top, trimmed.top),
+      bottom: Math.min(segmentBounds.bottom, trimmed.bottom),
+      left: Math.max(segmentBounds.left, trimmed.left),
+      right: Math.min(segmentBounds.right, trimmed.right),
+    }
+  }
+
+  if (
+    bounds.top <= 2 &&
+    bounds.left <= 2 &&
+    bounds.right >= w - 2 &&
+    bounds.bottom >= h - 2
+  ) {
     return canvas
   }
+
   return cropCanvas(canvas, bounds.left, bounds.top, bounds.right - bounds.left, bounds.bottom - bounds.top)
 }
 
@@ -119,19 +141,20 @@ function extractPainting(img: ImageBitmap): ExtractResult {
 
   const bounds = segmentPaintingBounds(data, w, h)
   const crop = boundsToCrop(bounds, img.width, img.height, scale)
-  const cropped = crop.sw < img.width * 0.97 || crop.sh < img.height * 0.97
+  const cropped = crop.sw < img.width * 0.985 || crop.sh < img.height * 0.985
 
   const canvas = document.createElement('canvas')
   canvas.width = img.width
   canvas.height = img.height
   const ctx = canvas.getContext('2d')!
   ctx.drawImage(img, 0, 0)
-  const result = cropCanvas(canvas, crop.sx, crop.sy, crop.sw, crop.sh)
+  let result = cropCanvas(canvas, crop.sx, crop.sy, crop.sw, crop.sh)
+  result = refineCanvas(result)
 
   return {
     canvas: result,
     method: cropped ? 'rect' : 'none',
-    cropped,
+    cropped: cropped || result.width < img.width * 0.985 || result.height < img.height * 0.985,
   }
 }
 

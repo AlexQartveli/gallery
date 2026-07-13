@@ -33,7 +33,35 @@ function percentile(values: number[], p: number): number {
   return sorted[Math.min(sorted.length - 1, Math.max(0, Math.floor(sorted.length * p)))]
 }
 
+function estimateBackgroundFromEdges(data: Uint8ClampedArray, w: number, h: number): Rgb {
+  const samples: Rgb[] = []
+  const step = Math.max(2, Math.round(Math.min(w, h) / 180))
+
+  for (let x = 0; x < w; x += step) {
+    samples.push(sampleRgb(data, w, x, 0), sampleRgb(data, w, x, h - 1))
+  }
+  for (let y = 0; y < h; y += step) {
+    samples.push(sampleRgb(data, w, 0, y), sampleRgb(data, w, w - 1, y))
+  }
+
+  return {
+    r: median(samples.map((s) => s.r)),
+    g: median(samples.map((s) => s.g)),
+    b: median(samples.map((s) => s.b)),
+  }
+}
+
 function estimateBackground(data: Uint8ClampedArray, w: number, h: number): Rgb {
+  const edge = estimateBackgroundFromEdges(data, w, h)
+  const corner = estimateBackgroundCorners(data, w, h)
+  return {
+    r: median([edge.r, corner.r]),
+    g: median([edge.g, corner.g]),
+    b: median([edge.b, corner.b]),
+  }
+}
+
+function estimateBackgroundCorners(data: Uint8ClampedArray, w: number, h: number): Rgb {
   const samples: Rgb[] = []
   const pts = [
     [0.02, 0.02], [0.5, 0.02], [0.98, 0.02],
@@ -74,6 +102,85 @@ function colBgRatio(data: Uint8ClampedArray, w: number, x: number, bg: Rgb, thre
   return n ? bgCount / n : 1
 }
 
+function intersectBounds(a: Bounds, b: Bounds): Bounds | null {
+  const top = Math.max(a.top, b.top)
+  const bottom = Math.min(a.bottom, b.bottom)
+  const left = Math.max(a.left, b.left)
+  const right = Math.min(a.right, b.right)
+  if (right - left < 8 || bottom - top < 8) return null
+  return { top, bottom, left, right }
+}
+
+function boundsArea(bounds: Bounds): number {
+  return Math.max(0, bounds.right - bounds.left) * Math.max(0, bounds.bottom - bounds.top)
+}
+
+export function detectForegroundBoundsFloodFill(
+  data: Uint8ClampedArray,
+  w: number,
+  h: number,
+  tolerance = 46,
+): Bounds {
+  const bg = estimateBackgroundFromEdges(data, w, h)
+  const visited = new Uint8Array(w * h)
+  const queue: number[] = []
+
+  const isBackground = (x: number, y: number) => colorDist(sampleRgb(data, w, x, y), bg) < tolerance
+
+  const seed = (x: number, y: number) => {
+    const idx = y * w + x
+    if (visited[idx] || !isBackground(x, y)) return
+    visited[idx] = 1
+    queue.push(idx)
+  }
+
+  for (let x = 0; x < w; x++) {
+    seed(x, 0)
+    seed(x, h - 1)
+  }
+  for (let y = 0; y < h; y++) {
+    seed(0, y)
+    seed(w - 1, y)
+  }
+
+  while (queue.length) {
+    const idx = queue.pop()!
+    const x = idx % w
+    const y = Math.floor(idx / w)
+    if (x > 0) seed(x - 1, y)
+    if (x < w - 1) seed(x + 1, y)
+    if (y > 0) seed(x, y - 1)
+    if (y < h - 1) seed(x, y + 1)
+  }
+
+  let top = h
+  let bottom = 0
+  let left = w
+  let right = 0
+  let found = false
+
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (visited[y * w + x]) continue
+      found = true
+      top = Math.min(top, y)
+      bottom = Math.max(bottom, y)
+      left = Math.min(left, x)
+      right = Math.max(right, x)
+    }
+  }
+
+  if (!found) return { top: 0, bottom: h, left: 0, right: w }
+
+  const pad = Math.max(2, Math.round(Math.min(right - left, bottom - top) * 0.006))
+  return {
+    top: Math.max(0, top - pad),
+    bottom: Math.min(h, bottom + pad + 1),
+    left: Math.max(0, left - pad),
+    right: Math.min(w, right + pad + 1),
+  }
+}
+
 export function detectBackgroundBounds(data: Uint8ClampedArray, w: number, h: number): Bounds {
   const bg = estimateBackground(data, w, h)
   const thresh = 42
@@ -88,7 +195,7 @@ export function detectBackgroundBounds(data: Uint8ClampedArray, w: number, h: nu
 
   let bottom = h
   for (let y = h - 1; y > Math.floor(h * 0.52); y--) {
-    if (rowBgRatio(data, w, y, bg, thresh, 0, w) < 0.82) {
+    if (rowBgRatio(data, w, y, bg, thresh, 0, w) < 0.72) {
       bottom = y + 1
       break
     }
@@ -114,6 +221,20 @@ export function detectBackgroundBounds(data: Uint8ClampedArray, w: number, h: nu
   const objectH = bottom - top
   if (objectW < w * 0.2 || objectH < h * 0.15 || objectW * objectH < w * h * 0.06) {
     return { top: 0, bottom: h, left: 0, right: w }
+  }
+
+  const flood = detectForegroundBoundsFloodFill(data, w, h)
+  const merged = intersectBounds(
+    { top, bottom, left, right },
+    flood,
+  )
+
+  if (merged && boundsArea(merged) < w * h * 0.985) {
+    return merged
+  }
+
+  if (boundsArea(flood) < w * h * 0.985) {
+    return flood
   }
 
   return { top, bottom, left, right }
@@ -366,4 +487,67 @@ export function boundsToQuad(bounds: Bounds): [{ x: number; y: number }, { x: nu
     { x: right, y: bottom },
     { x: left, y: bottom },
   ]
+}
+
+export function trimUniformMargins(
+  data: Uint8ClampedArray,
+  w: number,
+  h: number,
+  tolerance = 40,
+): Bounds {
+  const bg = estimateBackgroundFromEdges(data, w, h)
+
+  const rowBgShare = (y: number) => {
+    let bgCount = 0
+    for (let x = 0; x < w; x += 2) {
+      if (colorDist(sampleRgb(data, w, x, y), bg) < tolerance) bgCount++
+    }
+    return bgCount / Math.ceil(w / 2)
+  }
+
+  const colBgShare = (x: number) => {
+    let bgCount = 0
+    for (let y = 0; y < h; y += 2) {
+      if (colorDist(sampleRgb(data, w, x, y), bg) < tolerance) bgCount++
+    }
+    return bgCount / Math.ceil(h / 2)
+  }
+
+  let top = 0
+  for (let y = 0; y < h; y++) {
+    if (rowBgShare(y) < 0.9) {
+      top = y
+      break
+    }
+  }
+
+  let bottom = h
+  for (let y = h - 1; y >= 0; y--) {
+    if (rowBgShare(y) < 0.9) {
+      bottom = y + 1
+      break
+    }
+  }
+
+  let left = 0
+  for (let x = 0; x < w; x++) {
+    if (colBgShare(x) < 0.9) {
+      left = x
+      break
+    }
+  }
+
+  let right = w
+  for (let x = w - 1; x >= 0; x--) {
+    if (colBgShare(x) < 0.9) {
+      right = x + 1
+      break
+    }
+  }
+
+  if (right - left < w * 0.25 || bottom - top < h * 0.25) {
+    return { top: 0, bottom: h, left: 0, right: w }
+  }
+
+  return { top, bottom, left, right }
 }
