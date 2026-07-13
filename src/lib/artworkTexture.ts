@@ -20,7 +20,9 @@ export function getWatermarkOverlayTexture(): THREE.CanvasTexture {
   const canvas = document.createElement('canvas')
   canvas.width = 320
   canvas.height = 160
-  drawWatermark(canvas.getContext('2d')!, canvas.width, canvas.height)
+  const ctx = canvas.getContext('2d')!
+  ctx.clearRect(0, 0, canvas.width, canvas.height)
+  drawWatermark(ctx, canvas.width, canvas.height)
 
   watermarkOverlay = new THREE.CanvasTexture(canvas)
   watermarkOverlay.colorSpace = THREE.SRGBColorSpace
@@ -34,32 +36,59 @@ export function getWatermarkOverlayTexture(): THREE.CanvasTexture {
   return watermarkOverlay
 }
 
-async function loadArtworkTexture(url: string): Promise<THREE.Texture> {
-  const response = await fetch(url, { mode: 'cors', credentials: 'omit' })
-  if (!response.ok) {
-    throw new Error(`Texture fetch failed: ${response.status}`)
-  }
+function loadImageElement(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image()
+    image.crossOrigin = 'anonymous'
+    image.decoding = 'async'
+    image.onload = () => {
+      if (!image.naturalWidth || !image.naturalHeight) {
+        reject(new Error('Texture decode failed: empty image'))
+        return
+      }
+      resolve(image)
+    }
+    image.onerror = () => reject(new Error('Texture decode failed'))
+    image.src = url
+  })
+}
 
-  const blob = await response.blob()
-  const bitmap = await createImageBitmap(blob)
+async function loadArtworkTexture(url: string): Promise<THREE.Texture> {
+  let objectUrl: string | null = null
 
   try {
-    const width = bitmap.width
-    const height = bitmap.height
-    if (!width || !height) {
-      throw new Error('Texture decode failed: empty image')
+    const response = await fetch(url, { mode: 'cors', credentials: 'omit' })
+    if (!response.ok) {
+      throw new Error(`Texture fetch failed: ${response.status}`)
     }
 
-    const texture = new THREE.Texture(bitmap)
+    const blob = await response.blob()
+    objectUrl = URL.createObjectURL(blob)
+    const image = await loadImageElement(objectUrl)
+
+    const texture = new THREE.Texture(image)
     texture.colorSpace = THREE.SRGBColorSpace
     texture.minFilter = THREE.LinearFilter
     texture.magFilter = THREE.LinearFilter
     texture.generateMipmaps = false
     texture.needsUpdate = true
     return texture
+  } catch (fetchError) {
+    // Fallback for hosts that block fetch/CORS but still allow <img>.
+    try {
+      const image = await loadImageElement(url)
+      const texture = new THREE.Texture(image)
+      texture.colorSpace = THREE.SRGBColorSpace
+      texture.minFilter = THREE.LinearFilter
+      texture.magFilter = THREE.LinearFilter
+      texture.generateMipmaps = false
+      texture.needsUpdate = true
+      return texture
+    } catch {
+      throw fetchError
+    }
   } finally {
-    // ImageBitmap is copied into the GPU texture; release memory.
-    bitmap.close()
+    if (objectUrl) URL.revokeObjectURL(objectUrl)
   }
 }
 

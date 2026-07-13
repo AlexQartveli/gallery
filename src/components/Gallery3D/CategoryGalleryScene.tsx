@@ -214,6 +214,23 @@ function WallArt({
 }) {
   const { texture, failed, fallbackColor } = useArtworkTexture(artwork.imageUrl, artwork.id)
   const watermark = useMemo(() => getWatermarkOverlayTexture(), [])
+  const canvasMaterial = useMemo(() => {
+    if (texture) {
+      return new THREE.MeshBasicMaterial({
+        map: texture,
+        side: THREE.DoubleSide,
+        toneMapped: false,
+      })
+    }
+    return new THREE.MeshBasicMaterial({
+      color: fallbackColor,
+      side: THREE.DoubleSide,
+      toneMapped: false,
+      transparent: failed,
+      opacity: failed ? 0.92 : 1,
+    })
+  }, [texture, fallbackColor, failed])
+
   const aspect = artwork.width / artwork.height
   const h = 1.55
   const w = Math.min(h * aspect, 2.3)
@@ -267,24 +284,8 @@ function WallArt({
       </mesh>
 
       {/* Canvas */}
-      <mesh position={[0, 0, 0.015]} userData={{ artwork }}>
+      <mesh position={[0, 0, 0.015]} userData={{ artwork }} material={canvasMaterial}>
         <planeGeometry args={[w, h]} />
-        {texture ? (
-          <meshBasicMaterial
-            key={texture.uuid}
-            map={texture}
-            side={THREE.DoubleSide}
-            toneMapped={false}
-          />
-        ) : (
-          <meshBasicMaterial
-            color={fallbackColor}
-            side={THREE.DoubleSide}
-            toneMapped={false}
-            transparent={failed}
-            opacity={failed ? 0.92 : 1}
-          />
-        )}
       </mesh>
 
       {texture && (
